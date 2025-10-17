@@ -12,7 +12,7 @@ public class CardDisplayDebug : MonoBehaviour {
             Card card = Instantiate(cardPrefab);
             deck.AddCard(card);
             card.SetBinaryData(i);
-            card.gameObject.name = i.ToString();
+            card.gameObject.name = card.MonthName + card.AnimalName + card.BrightName + card.RibbonName;
         }
 
         MoveCards();
