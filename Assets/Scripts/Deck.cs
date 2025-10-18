@@ -12,12 +12,20 @@ public class Deck : MonoBehaviour
         cards.Add(card);
     }
 
-    public Card DrawCard() {
+    public Card DrawCard()
+    {
         if (cards.Count == 0) return null;
-        
+
         Card card = cards[^1]; // The [^n] notation takes the n'th last element from a list, super weird...
         cards.RemoveAt(cards.Count - 1);
         return card;
+    }
+    
+    public Card GetCardAt(int index)
+    {
+        if (index < 0 || index >= cards.Count)
+            return null;
+        return cards[index];
     }
 
     public void Shuffle() {

@@ -295,6 +295,8 @@ MonoBehaviour:
   offset_y: 0
   verticalSpacing: 0.06
   horizontalSpacing: 0.0349
+  stackAnchor: {fileID: 0}
+  stackHeightStep: 0.01
   deck: {fileID: 1778121381}
 --- !u!4 &602132351
 Transform:
