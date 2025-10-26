@@ -2188,7 +2188,7 @@ Transform:
   m_GameObject: {fileID: 572567203}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.002, z: -0.03}
+  m_LocalPosition: {x: 0, y: 0.7055, z: -0.03}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3552,7 +3552,7 @@ Transform:
   m_GameObject: {fileID: 950555326}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.002, z: 0.12}
+  m_LocalPosition: {x: 0, y: 0.7055, z: 0.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3591,7 +3591,7 @@ Transform:
   m_GameObject: {fileID: 987556395}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.002, z: -0.12}
+  m_LocalPosition: {x: 0, y: 0.7055, z: -0.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7235,7 +7235,7 @@ Transform:
   m_GameObject: {fileID: 2116399684}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.002, z: 0.03}
+  m_LocalPosition: {x: 0, y: 0.7055, z: 0.03}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7456,7 +7456,7 @@ GameObject:
   m_Component:
   - component: {fileID: 577775006836228749}
   m_Layer: 0
-  m_Name: koikoitable1
+  m_Name: Table
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7809,11 +7809,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6854373285630953529, guid: f82c8a8765d1545688b45aa7d3dfa208, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.24
+      value: -0.18
       objectReference: {fileID: 0}
     - target: {fileID: 6854373285630953529, guid: f82c8a8765d1545688b45aa7d3dfa208, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.002
+      value: 0.7055
       objectReference: {fileID: 0}
     - target: {fileID: 6854373285630953529, guid: f82c8a8765d1545688b45aa7d3dfa208, type: 3}
       propertyPath: m_LocalPosition.z
@@ -8142,9 +8142,9 @@ SceneRoots:
   - {fileID: 602132351}
   - {fileID: 1778121382}
   - {fileID: 863725753}
+  - {fileID: 577775006836228749}
   - {fileID: 5394863546999003596}
   - {fileID: 950555327}
   - {fileID: 2116399685}
   - {fileID: 572567204}
   - {fileID: 987556396}
-  - {fileID: 577775006836228749}

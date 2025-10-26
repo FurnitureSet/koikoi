@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71ff322687a9e014e80e887b24ddd38c, type: 3}
-  m_Name: 01_Jan_4
+  m_Name: 09_Sep_4
   m_EditorClassIdentifier: 
   rank: 3
-  month: 0
-  bright: 1
-  animal: 0
+  month: 8
+  bright: 0
+  animal: 5
   ribbon: 0

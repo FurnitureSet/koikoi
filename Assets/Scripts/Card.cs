@@ -14,7 +14,7 @@ public class Card : MonoBehaviour {
         August, September, October, November, December
     }
     public enum BrightType {
-        None, Plain, Moon, Sakura
+        None, Plain, Moon, Sakura, RainMan
     }
     public enum AnimalType {
         None, Plain, Boar, Deer, Butterfly, Sake
