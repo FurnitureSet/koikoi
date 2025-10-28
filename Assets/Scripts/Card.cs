@@ -137,9 +137,11 @@ public class Card : MonoBehaviour {
         Bright = cardData.Bright;
         Animal = cardData.Animal;
         Ribbon = cardData.Ribbon;
+        // Create and use the material property block
         material_properties ??= new MaterialPropertyBlock();
         material_properties.SetTexture("_BaseMap", textureAtlas.GetTexture(UniqueID));
         meshRenderer.SetPropertyBlock(material_properties);
+        OnValidate();
     }
 
 
