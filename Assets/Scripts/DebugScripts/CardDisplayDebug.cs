@@ -14,6 +14,7 @@ public class CardDisplayDebug : MonoBehaviour {
     [SerializeField] private Deck deck;
 
     void Start() {
+        CardData[] cardDataArray = Resources.LoadAll<CardData>("GameData/CardData");
         if (stackAnchor == null) {
             stackAnchor = transform;
         }
@@ -21,7 +22,8 @@ public class CardDisplayDebug : MonoBehaviour {
         for (int i = 0; i < 48; i++) {
             Card card = Instantiate(cardPrefab, stackAnchor.position, stackAnchor.rotation);
             deck.AddCard(card);
-            card.SetBinaryData(i);
+            Debug.Log($"Loaded Card Data: {cardDataArray[i].name}");
+            card.LoadCardData(cardDataArray[i]);
             card.gameObject.name = card.MonthName + card.AnimalName + card.BrightName + card.RibbonName;
         }
 
