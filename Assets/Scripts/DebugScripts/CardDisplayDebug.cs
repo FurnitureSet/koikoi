@@ -12,6 +12,9 @@ public class CardDisplayDebug : MonoBehaviour {
     [SerializeField] private Transform stackAnchor;
     [SerializeField, Range(0f, 0.01f)] private float stackHeightStep = 0.004f;
     [SerializeField] private Deck deck;
+    private float xPlayerStartPos = 0.105f;
+    private float xCenterStartPos = 0.045f;
+    private float xOffset = 0.03f;
 
     void Start() {
         CardData[] cardDataArray = Resources.LoadAll<CardData>("GameData/CardData");
@@ -63,7 +66,7 @@ public class CardDisplayDebug : MonoBehaviour {
     {
         deck.Shuffle();
         Vector3 basePosition = stackAnchor != null ? stackAnchor.position : Vector3.zero;
-        Quaternion baseRotation = Quaternion.Euler(90, 180, 0);
+        Quaternion baseRotation = Quaternion.Euler(180, 180, 0);
         for (int i = 0; i < 48; i++)
         {
             Card card = deck.GetCardAt(i);
@@ -79,7 +82,7 @@ public class CardDisplayDebug : MonoBehaviour {
             {
                 boxCollider = card.AddComponent<BoxCollider>();
             }
-            boxCollider.size = new Vector3(0.61f, 1f, 0.06f);
+            boxCollider.size = new Vector3(0.024f, 0.001f, 0.034f);
             // card.GetComponent<Rigidbody>().isKinematic = true;
             card.GetComponent<Rigidbody>().freezeRotation = true;
             card.GetComponent<Rigidbody>().isKinematic = true;
@@ -94,13 +97,12 @@ public class CardDisplayDebug : MonoBehaviour {
 
     private IEnumerator DealCardsCoroutine()
     {
-        float cardSpacing = 0.04f;
         float moveDuration = 0.1f;
         float delayBetweenCards = 0.1f;
-        Vector3 topPlayerDealPosition = new Vector3(0.14f, 0.7055f, 0.12f);
-        Vector3 bottomPlayerDealPosition = new Vector3(0.14f, 0.7055f, -0.12f);
-        Vector3 centerDealPositionTop = new Vector3(0.06f, 0.7055f, 0.03f);
-        Vector3 centerDealPositionBottom = new Vector3(0.06f, 0.7055f, -0.03f);
+        Vector3 topPlayerDealPosition = new Vector3(xPlayerStartPos, 0.7055f, 0.09f);
+        Vector3 bottomPlayerDealPosition = new Vector3(xPlayerStartPos, 0.7055f, -0.09f);
+        Vector3 centerDealPositionTop = new Vector3(xCenterStartPos, 0.7055f, 0.025f);
+        Vector3 centerDealPositionBottom = new Vector3(xCenterStartPos, 0.7055f, -0.025f);
 
         // Deal two cards at a time, four times
         for (int y = 0; y < 4; y++)
@@ -121,9 +123,9 @@ public class CardDisplayDebug : MonoBehaviour {
                 rb.isKinematic = false;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
-                Quaternion dealRotation = Quaternion.Euler(-90, 0, 0);
+                Quaternion dealRotation = Quaternion.Euler(0, 0, 0);
                 yield return StartCoroutine(MoveRigidbodyToPosition(rb, topPlayerDealPosition, dealRotation, moveDuration));
-                topPlayerDealPosition -= new Vector3(cardSpacing, 0f, 0f);
+                topPlayerDealPosition -= new Vector3(xOffset, 0f, 0f);
                 rb.position = new Vector3(rb.position.x, 0.7055f, rb.position.z);
                 yield return new WaitForSeconds(delayBetweenCards);
             }
@@ -144,9 +146,9 @@ public class CardDisplayDebug : MonoBehaviour {
                 rb.isKinematic = false;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
-                Quaternion dealRotation = Quaternion.Euler(-90, 180, 0);
+                Quaternion dealRotation = Quaternion.Euler(0, 180, 0);
                 yield return StartCoroutine(MoveRigidbodyToPosition(rb, centerDealPositionTop, dealRotation, moveDuration));
-                centerDealPositionTop -= new Vector3(cardSpacing, 0f, 0f);
+                centerDealPositionTop -= new Vector3(xOffset, 0f, 0f);
                 rb.position = new Vector3(rb.position.x, 0.7055f, rb.position.z);
                 yield return new WaitForSeconds(delayBetweenCards);
 
@@ -164,7 +166,7 @@ public class CardDisplayDebug : MonoBehaviour {
                 rb2.collisionDetectionMode = CollisionDetectionMode.Continuous;
                 rb2.interpolation = RigidbodyInterpolation.Interpolate;
                 yield return StartCoroutine(MoveRigidbodyToPosition(rb2, centerDealPositionBottom, dealRotation, moveDuration));
-                centerDealPositionBottom -= new Vector3(cardSpacing, 0f, 0f);
+                centerDealPositionBottom -= new Vector3(xOffset, 0f, 0f);
                 rb2.position = new Vector3(rb2.position.x, 0.7055f, rb2.position.z);
                 yield return new WaitForSeconds(delayBetweenCards);
             }
@@ -186,9 +188,9 @@ public class CardDisplayDebug : MonoBehaviour {
                 rb.isKinematic = false;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
-                Quaternion dealRotation = Quaternion.Euler(-90, 180, 0);
+                Quaternion dealRotation = Quaternion.Euler(0, 180, 0);
                 yield return StartCoroutine(MoveRigidbodyToPosition(rb, bottomPlayerDealPosition, dealRotation, moveDuration));
-                bottomPlayerDealPosition -= new Vector3(cardSpacing, 0f, 0f);
+                bottomPlayerDealPosition -= new Vector3(xOffset, 0f, 0f);
                 rb.position = new Vector3(rb.position.x, 0.7055f, rb.position.z);
                 yield return new WaitForSeconds(delayBetweenCards);
             }
