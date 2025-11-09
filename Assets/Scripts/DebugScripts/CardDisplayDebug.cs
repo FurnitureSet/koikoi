@@ -46,7 +46,7 @@ public class CardDisplayDebug : MonoBehaviour {
             Debug.Log("Moving previously selected card down");
             StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(), 
                 new Vector3(selectedCard.transform.position.x, cardRestingHeight, selectedCard.transform.position.z), 
-                Quaternion.Euler(0, 180, 0), 
+                selectedCard.transform.rotation, 
                 0.1f));
         }
         selectedCard = card;
@@ -54,7 +54,7 @@ public class CardDisplayDebug : MonoBehaviour {
         Debug.Log("Moving selected card up");
         StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(), 
             new Vector3(card.transform.position.x, cardRestingHeight + 0.01f, card.transform.position.z), 
-            Quaternion.Euler(0, 180, 0), 
+            selectedCard.transform.rotation, 
             0.1f));
     }
 
