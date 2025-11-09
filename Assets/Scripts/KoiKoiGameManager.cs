@@ -238,8 +238,8 @@ public class KoiKoiGameManager : MonoBehaviour {
             }
         }
         yield return new WaitForSeconds(0.5f);
-        CheckHands();
         playerTurn = true;
+        CheckHands();
     }
     
     IEnumerator MoveRigidbodyToPosition(Rigidbody rb, Vector3 target, Quaternion rotation, float duration)
@@ -267,6 +267,7 @@ public class KoiKoiGameManager : MonoBehaviour {
 
     void CheckHands()
     {
+        Debug.Log("Checking hands for possible matches...");
         bool canMatch = false;
         if (timeToDraw)
         {
