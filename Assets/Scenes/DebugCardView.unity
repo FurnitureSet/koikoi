@@ -1356,6 +1356,7 @@ MonoBehaviour:
   stackAnchor: {fileID: 0}
   stackHeightStep: 0.0004
   deck: {fileID: 1778121381}
+  selectedCard: {fileID: 0}
 --- !u!4 &602132351
 Transform:
   m_ObjectHideFlags: 0
@@ -4445,6 +4446,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 688c5e1f2e5f35d4382acfd57d5d9bd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isSelected: 0
+  cardDisplayDebug: {fileID: 0}
   textureAtlas: {fileID: 11400000, guid: 244b909df9f226b4bbaa3f740fce3f27, type: 2}
   meshRenderer: {fileID: 2074527897}
   debugInfo: "Binary data: 0\nUnique ID: 0\nRank: First\nMonth: January\nAnimal:

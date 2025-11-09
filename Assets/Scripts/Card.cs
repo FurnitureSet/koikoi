@@ -4,6 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(CardRenderer))]
 public class Card : MonoBehaviour {
 
+    public bool isSelected = false;
+    public CardDisplayDebug cardDisplayDebug;
+
     #region Data Definitions
 
     public enum RankType {
@@ -161,10 +164,11 @@ public class Card : MonoBehaviour {
     
     #if UNITY_EDITOR
     [SerializeField, TextArea] private string debugInfo;
-    #endif
+#endif
 
-    private void OnValidate() {
-    #if UNITY_EDITOR
+    private void OnValidate()
+    {
+#if UNITY_EDITOR
         debugInfo =
             $"Binary data: {BinaryData}\n" +
             $"Unique ID: {UniqueID}\n" +
@@ -173,6 +177,17 @@ public class Card : MonoBehaviour {
             $"Animal: {AnimalName}\n" +
             $"Bright: {BrightName}\n" +
             $"Ribbon: {RibbonName}";
-    #endif
+#endif
+    }
+
+    public void Start()
+    {
+        cardDisplayDebug = GameObject.FindFirstObjectByType<CardDisplayDebug>();
+    }
+
+    public void OnMouseDown()
+    {
+        Debug.Log($"Clicked on card: {MonthName} {AnimalName} {BrightName} {RibbonName}");
+        cardDisplayDebug.SetCardSelectedBool(this);
     }
 }
