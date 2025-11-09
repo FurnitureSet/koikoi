@@ -164,11 +164,11 @@ public class Card : MonoBehaviour {
     
     #if UNITY_EDITOR
     [SerializeField, TextArea] private string debugInfo;
-#endif
+    #endif
 
     private void OnValidate()
     {
-#if UNITY_EDITOR
+    #if UNITY_EDITOR
         debugInfo =
             $"Binary data: {BinaryData}\n" +
             $"Unique ID: {UniqueID}\n" +
@@ -177,7 +177,7 @@ public class Card : MonoBehaviour {
             $"Animal: {AnimalName}\n" +
             $"Bright: {BrightName}\n" +
             $"Ribbon: {RibbonName}";
-#endif
+    #endif
     }
 
     public void Start()
@@ -188,6 +188,29 @@ public class Card : MonoBehaviour {
     public void OnMouseDown()
     {
         Debug.Log($"Clicked on card: {MonthName} {AnimalName} {BrightName} {RibbonName}");
-        gameManager.SetCardSelectedBool(this);
+        // select card
+        if (gameManager.playerTurn && gameManager.playerHandCards.Contains(this) && !gameManager.timeToDraw)
+        {
+            gameManager.SetCardSelectedBool(this);
+        }
+        // match card
+        if (gameManager.selectedCard != null && this.MonthName == gameManager.selectedCard.MonthName 
+            && this != gameManager.selectedCard && !gameManager.timeToDraw)
+        {
+            gameManager.Match(this);
+            return;
+        }
+        // draw from deck
+        if (gameManager.timeToDraw && gameManager.deckCards.Contains(this) && gameManager.selectedCard == null)
+        {
+            gameManager.DrawFromDeck();
+            return;
+        }
+        if (gameManager.timeToDraw && this != gameManager.selectedCard && gameManager.centerCards.Contains(this) 
+        && this.MonthName == gameManager.selectedCard.MonthName)
+        {
+            gameManager.Match(this);
+            return;
+        }
     }
 }
