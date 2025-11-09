@@ -1329,6 +1329,7 @@ GameObject:
   m_Component:
   - component: {fileID: 602132351}
   - component: {fileID: 602132350}
+  - component: {fileID: 602132352}
   m_Layer: 0
   m_Name: CardDisplay
   m_TagString: Untagged
@@ -1343,7 +1344,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 602132349}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cd8147dc9775d984490822ee9c2cdc2b, type: 3}
   m_Name: 
@@ -1372,6 +1373,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &602132352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 602132349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce240d5ee0f804c76a32b82a89cf7bba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardPrefab: {fileID: 1516397858}
+  deck: {fileID: 1778121381}
+  selectedCard: {fileID: 0}
+  playerHandCards: []
+  centerCards: []
+  opponentHandCards: []
 --- !u!1001 &630652949
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4447,7 +4466,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isSelected: 0
-  cardDisplayDebug: {fileID: 0}
+  gameManager: {fileID: 0}
   textureAtlas: {fileID: 11400000, guid: 244b909df9f226b4bbaa3f740fce3f27, type: 2}
   meshRenderer: {fileID: 2074527897}
   debugInfo: "Binary data: 0\nUnique ID: 0\nRank: First\nMonth: January\nAnimal:

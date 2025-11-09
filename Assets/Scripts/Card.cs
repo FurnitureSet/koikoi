@@ -5,7 +5,7 @@ using UnityEngine;
 public class Card : MonoBehaviour {
 
     public bool isSelected = false;
-    public CardDisplayDebug cardDisplayDebug;
+    public KoiKoiGameManager gameManager;
 
     #region Data Definitions
 
@@ -182,12 +182,12 @@ public class Card : MonoBehaviour {
 
     public void Start()
     {
-        cardDisplayDebug = GameObject.FindFirstObjectByType<CardDisplayDebug>();
+        gameManager = GameObject.FindFirstObjectByType<KoiKoiGameManager>();
     }
 
     public void OnMouseDown()
     {
         Debug.Log($"Clicked on card: {MonthName} {AnimalName} {BrightName} {RibbonName}");
-        cardDisplayDebug.SetCardSelectedBool(this);
+        gameManager.SetCardSelectedBool(this);
     }
 }
