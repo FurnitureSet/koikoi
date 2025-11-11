@@ -188,8 +188,13 @@ public class Card : MonoBehaviour {
     public void OnMouseDown()
     {
         Debug.Log($"Clicked on card: {MonthName} {AnimalName} {BrightName} {RibbonName}");
-        // select card
+        // select player card
         if (gameManager.playerTurn && gameManager.playerHandCards.Contains(this) && !gameManager.timeToDraw)
+        {
+            gameManager.SetCardSelectedBool(this);
+        }
+        // select opponent card
+        if (gameManager.opponentTurn && gameManager.opponentHandCards.Contains(this) && !gameManager.timeToDraw)
         {
             gameManager.SetCardSelectedBool(this);
         }
@@ -197,7 +202,12 @@ public class Card : MonoBehaviour {
         if (gameManager.selectedCard != null && this.MonthName == gameManager.selectedCard.MonthName 
             && this != gameManager.selectedCard && !gameManager.timeToDraw)
         {
-            gameManager.Match(this);
+            // prevent matching opponent's card during player's turn and vice versa
+            if ((gameManager.playerTurn && !gameManager.opponentHandCards.Contains(this)) ||
+                (gameManager.opponentTurn && !gameManager.playerHandCards.Contains(this)))
+            {
+                gameManager.Match(this);   
+            }
             return;
         }
         // draw from deck
@@ -206,6 +216,7 @@ public class Card : MonoBehaviour {
             gameManager.DrawFromDeck();
             return;
         }
+        // match from deck to center
         if (gameManager.timeToDraw && this != gameManager.selectedCard && gameManager.centerCards.Contains(this) 
         && this.MonthName == gameManager.selectedCard.MonthName)
         {

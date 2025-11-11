@@ -4,7 +4,8 @@ using System.Security.Claims;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class KoiKoiGameManager : MonoBehaviour {
+public class KoiKoiGameManager : MonoBehaviour
+{
     [SerializeField] private Card cardPrefab;
     private float offset_x = 0f;
     private float offset_y = 0f;
@@ -40,18 +41,30 @@ public class KoiKoiGameManager : MonoBehaviour {
     private List<Card> opponentRibbonCards = new List<Card>();
     private List<Card> playerShitCards = new List<Card>();
     private List<Card> opponentShitCards = new List<Card>();
+
     private Vector3 playerShitCardsPosition = new Vector3(-0.215f, 0.7055f, -0.21f);
     private Vector3 playerRibbonCardsPosition = new Vector3(-0.215f, 0.7055f, -0.17f);
     private Vector3 playerAnimalCardsPosition = new Vector3(-0.215f, 0.7055f, -0.13f);
     private Vector3 playerBrightCardsPosition = new Vector3(-0.215f, 0.7055f, -0.09f);
 
-    void Start() {
+    private Vector3 opponentShitCardsPosition = new Vector3(0.215f, 0.7055f, 0.21f);
+    private Vector3 opponentRibbonCardsPosition = new Vector3(0.215f, 0.7055f, 0.17f);
+    private Vector3 opponentAnimalCardsPosition = new Vector3(0.215f, 0.7055f, 0.13f);
+    private Vector3 opponentBrightCardsPosition = new Vector3(0.215f, 0.7055f, 0.09f);
+    [SerializeField] private GameObject viewMatchesButton;
+    [SerializeField] private GameObject viewOpponentMatchesButton;
+    private bool gameOver = false;
+
+    IEnumerator Start()
+    {
         CardData[] cardDataArray = Resources.LoadAll<CardData>("GameData/CardData");
-        if (stackAnchor == null) {
+        if (stackAnchor == null)
+        {
             stackAnchor = transform;
         }
 
-        for (int i = 0; i < 48; i++) {
+        for (int i = 0; i < 48; i++)
+        {
             Card card = Instantiate(cardPrefab, stackAnchor.position, stackAnchor.rotation);
             deck.AddCard(card);
             deckCards.Add(card);
@@ -61,7 +74,8 @@ public class KoiKoiGameManager : MonoBehaviour {
         }
 
         CreateDeckOnScreen();
-        DealCards();
+        yield return StartCoroutine(DealCardsCoroutine());
+        StartCoroutine(GameLoop());
         // MoveCards();
     }
 
@@ -113,19 +127,12 @@ public class KoiKoiGameManager : MonoBehaviour {
                 boxCollider = card.AddComponent<BoxCollider>();
             }
             boxCollider.size = new Vector3(0.024f, 0.001f, 0.034f);
-            // card.GetComponent<Rigidbody>().isKinematic = true;
             card.GetComponent<Rigidbody>().freezeRotation = true;
             card.GetComponent<Rigidbody>().isKinematic = true;
-            // card.GetComponent<Rigidbody>().collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         }
     }
 
-    public void DealCards()
-    {
-        StartCoroutine(DealCardsCoroutine());
-    }
-
-    private IEnumerator DealCardsCoroutine()
+    IEnumerator DealCardsCoroutine()
     {
         float moveDuration = 0.1f;
         float delayBetweenCards = 0.1f;
@@ -237,11 +244,8 @@ public class KoiKoiGameManager : MonoBehaviour {
                 yield return new WaitForSeconds(delayBetweenCards);
             }
         }
-        yield return new WaitForSeconds(0.5f);
-        playerTurn = true;
-        CheckHands();
     }
-    
+
     IEnumerator MoveRigidbodyToPosition(Rigidbody rb, Vector3 target, Quaternion rotation, float duration)
     {
         Vector3 start = rb.position;
@@ -276,7 +280,6 @@ public class KoiKoiGameManager : MonoBehaviour {
             {
                 if (selectedCard.MonthName == centerCard.MonthName)
                 {
-                    Debug.Log($"Match found! Player {selectedCard.MonthName} matches center {centerCard.MonthName}");
                     selectedCard.transform.Find("Particle shape").gameObject.SetActive(true);
                     centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
                     canMatch = true;
@@ -291,13 +294,11 @@ public class KoiKoiGameManager : MonoBehaviour {
 
                 foreach (Card centerCard in centerCards)
                 {
-                    Debug.Log($"Comparing Player Card: {playerCard.MonthName} with Center Card: {centerCard.MonthName}");
                     if (centerCard == null) continue;
 
                     if (playerCard.MonthName == centerCard.MonthName)
                     {
                         canMatch = true;
-                        Debug.Log($"Match found! Player {playerCard.MonthName} matches center {centerCard.MonthName}");
                         playerCard.transform.Find("Particle shape").gameObject.SetActive(true);
                         centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
                     }
@@ -312,13 +313,11 @@ public class KoiKoiGameManager : MonoBehaviour {
 
                 foreach (Card centerCard in centerCards)
                 {
-                    Debug.Log($"Comparing Opponent Card: {opponentCard.MonthName} with Center Card: {centerCard.MonthName}");
                     if (centerCard == null) continue;
 
                     if (opponentCard.MonthName == centerCard.MonthName)
                     {
                         canMatch = true;
-                        Debug.Log($"Match found! Opponent {opponentCard.MonthName} matches center {centerCard.MonthName}");
                         opponentCard.transform.Find("Particle shape").gameObject.SetActive(true);
                         centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
                     }
@@ -328,7 +327,7 @@ public class KoiKoiGameManager : MonoBehaviour {
         if (!canMatch)
         {
             ShowMarkers();
-        }        
+        }
     }
 
     public void SetCardSelectedBool(Card card)
@@ -336,56 +335,122 @@ public class KoiKoiGameManager : MonoBehaviour {
         if (selectedCard != null)
         {
             selectedCard.isSelected = false;
-            StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(), 
-                new Vector3(selectedCard.transform.position.x, cardRestingHeight, selectedCard.transform.position.z), 
-                selectedCard.transform.rotation, 
+            StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(),
+                new Vector3(selectedCard.transform.position.x, cardRestingHeight, selectedCard.transform.position.z),
+                selectedCard.transform.rotation,
                 0.1f));
         }
         selectedCard = card;
         card.isSelected = true;
-        StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(), 
-            new Vector3(card.transform.position.x, cardRestingHeight + 0.01f, card.transform.position.z), 
-            selectedCard.transform.rotation, 
+        StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+            new Vector3(card.transform.position.x, cardRestingHeight + 0.01f, card.transform.position.z),
+            selectedCard.transform.rotation,
             0.1f));
     }
 
     public void Match(Card centerCard)
     {
-        StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(), 
-        new Vector3(centerCard.transform.position.x, cardRestingHeight + 0.002f, 
-        centerCard.transform.position.z - 0.01f),
-        selectedCard.transform.rotation,
-        0.1f));
+        StartCoroutine(MatchCoroutine(centerCard));
+    }
+
+    public IEnumerator MatchCoroutine(Card centerCard)
+    {
+        yield return StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(),
+            new Vector3(centerCard.transform.position.x, cardRestingHeight + 0.002f,
+            centerCard.transform.position.z - 0.01f),
+            Quaternion.Euler(0, 180, 0),
+            0.1f));
+
         DeactivateParticlesOnCards();
-        playerHandCards.Remove(selectedCard);
+        if (playerTurn)
+        {
+            playerHandCards.Remove(selectedCard);
+            playerMatchedCards.Add(selectedCard);
+            playerMatchedCards.Add(centerCard);
+        }
+        if (opponentTurn)
+        {
+            opponentHandCards.Remove(selectedCard);
+            opponentMatchedCards.Add(selectedCard);
+            opponentMatchedCards.Add(centerCard);
+        }
         centerCards.Remove(centerCard);
-        playerMatchedCards.Add(selectedCard);
-        playerMatchedCards.Add(centerCard);
         tempMatchedCards.Add(selectedCard);
         tempMatchedCards.Add(centerCard);
         selectedCard = null;
+
         if (timeToDraw)
         {
+            yield return new WaitForSeconds(0.8f); // short pause before claiming matches
             ClaimMatches();
-            RestructurePlayerHand();
+            Debug.Log($"Player turn: {playerTurn}, Opponent turn: {opponentTurn}");
+            if (playerTurn)
+            {
+                Debug.Log("Restructuring Player Hand...");
+                RestructurePlayerHand();
+            }
+            else if (opponentTurn)
+            {
+                Debug.Log("Restructuring Opponent Hand...");
+                RestructureOpponentHand();
+            }
+            timeToDraw = false;
+            playerTurn = !playerTurn;
+            opponentTurn = !opponentTurn;
         }
-        timeToDraw = true;
+        else
+        {
+            timeToDraw = true;
+        }        
         HideMarkers();
     }
 
     public void MoveCardToPlaceholder(Vector3 position)
     {
-        StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(), 
-        new Vector3(position.x, cardRestingHeight, position.z), 
-        selectedCard.transform.rotation, 0.1f));
+        StartCoroutine(MoveCardToPlaceholderCoroutine(position));
+    }
+
+    IEnumerator MoveCardToPlaceholderCoroutine(Vector3 position)
+    {
+        yield return StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(),
+            new Vector3(position.x, cardRestingHeight, position.z),
+            selectedCard.transform.rotation, 0.1f));
+
+        centerCards.Add(selectedCard);
+        if (playerHandCards.Contains(selectedCard))
+        {
+            playerHandCards.Remove(selectedCard);
+        }
+        if (opponentHandCards.Contains(selectedCard))
+        {
+            opponentHandCards.Remove(selectedCard);
+        }
         DeactivateParticlesOnCards();
         HideMarkers();
         selectedCard = null;
+
         if (timeToDraw)
         {
+            yield return new WaitForSeconds(0.8f); // short pause before claiming matches
             ClaimMatches();
-            RestructurePlayerHand();
+            if (playerTurn)
+            {
+                Debug.Log("Restructuring Player Hand...");
+                RestructurePlayerHand();
+            }
+            else if (opponentTurn)
+            {
+                Debug.Log("Restructuring Opponent Hand...");
+                RestructureOpponentHand();
+            }
+            timeToDraw = false;
+            playerTurn = !playerTurn;
+            opponentTurn = !opponentTurn;
         }
+        else
+        {
+            timeToDraw = true;
+        } 
     }
 
     public void DrawFromDeck()
@@ -398,8 +463,8 @@ public class KoiKoiGameManager : MonoBehaviour {
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         Quaternion dealRotation = Quaternion.Euler(0, 180, 0);
-        StartCoroutine(MoveRigidbodyToPosition(rb, 
-        new Vector3(card.transform.position.x + 0.05f, card.transform.position.y + 0.02f, card.transform.position.z), 
+        StartCoroutine(MoveRigidbodyToPosition(rb,
+        new Vector3(card.transform.position.x + 0.05f, card.transform.position.y + 0.02f, card.transform.position.z),
         dealRotation, 0.1f));
         CheckHands();
     }
@@ -413,6 +478,10 @@ public class KoiKoiGameManager : MonoBehaviour {
         foreach (Card centerCard in centerCards)
         {
             centerCard.transform.Find("Particle shape").gameObject.SetActive(false);
+        }
+        foreach (Card opponentCard in opponentHandCards)
+        {
+            opponentCard.transform.Find("Particle shape").gameObject.SetActive(false);
         }
         if (selectedCard != null)
         {
@@ -442,7 +511,7 @@ public class KoiKoiGameManager : MonoBehaviour {
         {
             for (int i = 0; i < topRowCards.Length; i++)
             {
-                bool hasNeighbor = 
+                bool hasNeighbor =
                     (i > 0 && topRowCards[i - 1] != null) ||
                     (i < topRowCards.Length - 1 && topRowCards[i + 1] != null);
                 if (hasNeighbor && topRowCards[i] == null)
@@ -452,7 +521,7 @@ public class KoiKoiGameManager : MonoBehaviour {
             }
             for (int i = 0; i < bottomRowCards.Length; i++)
             {
-                bool hasNeighbor = 
+                bool hasNeighbor =
                     (i > 0 && bottomRowCards[i - 1] != null) ||
                     (i < bottomRowCards.Length - 1 && bottomRowCards[i + 1] != null);
                 if (hasNeighbor && bottomRowCards[i] == null)
@@ -481,78 +550,183 @@ public class KoiKoiGameManager : MonoBehaviour {
         {
             if (card.IsBright)
             {
-                playerBrightCards.Add(card);
-                StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                if (playerTurn)
+                {
+                    playerBrightCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
                     new Vector3(playerBrightCardsPosition.x,
                     playerBrightCardsPosition.y,
                     playerBrightCardsPosition.z),
                     card.transform.rotation,
                     0.1f));
-                if (playerBrightCards.Count % 3 == 0)
-                {
-                    playerBrightCardsPosition.x += 0.04f;
+                    if (playerBrightCards.Count % 3 == 0)
+                    {
+                        playerBrightCardsPosition.x += 0.04f;
+                    }
+                    else
+                    {
+                        playerBrightCardsPosition.x += 0.03f;
+                    }
                 }
-                else
+                else if (opponentTurn)
                 {
-                    playerBrightCardsPosition.x += 0.03f;
+                    opponentBrightCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                    new Vector3(opponentBrightCardsPosition.x,
+                    opponentBrightCardsPosition.y,
+                    opponentBrightCardsPosition.z),
+                    card.transform.rotation,
+                    0.1f));
+                    if (opponentBrightCards.Count % 3 == 0)
+                    {
+                        opponentBrightCardsPosition.x -= 0.04f;
+                    }
+                    else
+                    {
+                        opponentBrightCardsPosition.x -= 0.03f;
+                    }
                 }
+                
             }
             else if (card.IsAnimal)
             {
-                playerAnimalCards.Add(card);
-                StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
-                    new Vector3(playerAnimalCardsPosition.x,
-                    playerAnimalCardsPosition.y,
-                    playerAnimalCardsPosition.z),
-                    card.transform.rotation,
-                    0.1f));
-                if (playerAnimalCards.Count % 3 == 0)
+                if (playerTurn)
                 {
-                    playerAnimalCardsPosition.x += 0.04f;
+                    playerAnimalCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(playerAnimalCardsPosition.x,
+                        playerAnimalCardsPosition.y,
+                        playerAnimalCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (playerAnimalCards.Count % 3 == 0)
+                    {
+                        playerAnimalCardsPosition.x += 0.04f;
+                    }
+                    else
+                    {
+                        playerAnimalCardsPosition.x += 0.03f;
+                    }
                 }
-                else
+                else if (opponentTurn)
                 {
-                    playerAnimalCardsPosition.x += 0.03f;
+                    opponentAnimalCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(opponentAnimalCardsPosition.x,
+                        opponentAnimalCardsPosition.y,
+                        opponentAnimalCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (opponentAnimalCards.Count % 3 == 0)
+                    {
+                        opponentAnimalCardsPosition.x -= 0.04f;
+                    }
+                    else
+                    {
+                        opponentAnimalCardsPosition.x -= 0.03f;
+                    }
                 }
             }
             else if (card.IsRibbon)
             {
-                playerRibbonCards.Add(card);
-                StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
-                    new Vector3(playerRibbonCardsPosition.x,
-                    playerRibbonCardsPosition.y,
-                    playerRibbonCardsPosition.z),
-                    card.transform.rotation,
-                    0.1f));
-                if (playerRibbonCards.Count % 3 == 0)
+                if (playerTurn)
                 {
-                    playerRibbonCardsPosition.x += 0.04f;
-                }
-                else
+                    playerRibbonCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(playerRibbonCardsPosition.x,
+                        playerRibbonCardsPosition.y,
+                        playerRibbonCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (playerRibbonCards.Count % 3 == 0)
+                    {
+                        playerRibbonCardsPosition.x += 0.04f;
+                    }
+                    else
+                    {
+                        playerRibbonCardsPosition.x += 0.03f;
+                    }
+                } 
+                else if (opponentTurn)
                 {
-                    playerRibbonCardsPosition.x += 0.03f;
+                    opponentRibbonCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(opponentRibbonCardsPosition.x,
+                        opponentRibbonCardsPosition.y,
+                        opponentRibbonCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (opponentRibbonCards.Count % 3 == 0)
+                    {
+                        opponentRibbonCardsPosition.x -= 0.04f;
+                    }
+                    else
+                    {
+                        opponentRibbonCardsPosition.x -= 0.03f;
+                    }
                 }
             }
             else
             {
-                playerShitCards.Add(card);
-                StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
-                    new Vector3(playerShitCardsPosition.x,
-                    playerShitCardsPosition.y,
-                    playerShitCardsPosition.z),
-                    card.transform.rotation,
-                    0.1f));
-                if (playerShitCards.Count % 3 == 0)
+                if (playerTurn)
                 {
-                    playerShitCardsPosition.x += 0.04f;
+                    playerShitCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(playerShitCardsPosition.x,
+                        playerShitCardsPosition.y,
+                        playerShitCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (playerShitCards.Count % 3 == 0)
+                    {
+                        playerShitCardsPosition.x += 0.04f;
+                    }
+                    else
+                    {
+                        playerShitCardsPosition.x += 0.03f;
+                    }
                 }
-                else
+                else if (opponentTurn)
                 {
-                    playerShitCardsPosition.x += 0.03f;
+                    opponentShitCards.Add(card);
+                    StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                        new Vector3(opponentShitCardsPosition.x,
+                        opponentShitCardsPosition.y,
+                        opponentShitCardsPosition.z),
+                        card.transform.rotation,
+                        0.1f));
+                    if (opponentShitCards.Count % 3 == 0)
+                    {
+                        opponentShitCardsPosition.x -= 0.04f;
+                    }
+                    else
+                    {
+                        opponentShitCardsPosition.x -= 0.03f;
+                    }
+                }
+            }
+            // clear the indices for the markers
+            for (int i = 0; i < topRowCards.Length; i++)
+            {
+                if (topRowCards[i] != null && topRowCards[i].GetComponent<Card>() == card)
+                {
+                    topRowCards[i] = null;
+                }
+                if (bottomRowCards[i] != null && bottomRowCards[i].GetComponent<Card>() == card)
+                {
+                    bottomRowCards[i] = null;
                 }
             }
         }
         tempMatchedCards.Clear();
+        if (playerBrightCards.Count > 0 || playerAnimalCards.Count > 0 || playerRibbonCards.Count > 0 || playerShitCards.Count > 0)
+        {
+            viewMatchesButton.SetActive(true);
+        }
+        if (opponentBrightCards.Count > 0 || opponentAnimalCards.Count > 0 || opponentRibbonCards.Count > 0 || opponentShitCards.Count > 0)
+        {
+            viewOpponentMatchesButton.SetActive(true);
+        }
     }
 
     void RestructurePlayerHand()
@@ -579,5 +753,63 @@ public class KoiKoiGameManager : MonoBehaviour {
             // Smoothly move cards back into place
             StartCoroutine(MoveRigidbodyToPosition(rb, targetPos, card.transform.rotation, 0.1f));
         }
+    }
+
+    void RestructureOpponentHand()
+    {
+        Debug.Log("Entered RestructureOpponentHand()");
+        if (opponentHandCards.Count == 0) return;
+
+        // Determine total width based on spacing (0.03 between each card)
+        float spacing = 0.03f;
+        float totalWidth = (opponentHandCards.Count - 1) * spacing;
+
+        // Center cards around x = 0
+        float startX = -totalWidth / 2f;
+
+        for (int i = 0; i < opponentHandCards.Count; i++)
+        {
+            Card card = opponentHandCards[i];
+            if (card == null) continue;
+
+            Rigidbody rb = card.GetComponent<Rigidbody>();
+
+            // Calculate the new target position
+            Vector3 targetPos = new Vector3(startX + i * spacing, cardRestingHeight, 0.09f);
+
+            // Smoothly move cards back into place
+            StartCoroutine(MoveRigidbodyToPosition(rb, targetPos, card.transform.rotation, 0.1f));
+        }
+    }
+
+    IEnumerator GameLoop()
+    {
+        // Main game loop logic
+        playerTurn = true;
+        while (!gameOver)
+        {
+            if (playerTurn)
+            {
+                yield return new WaitForSeconds(1.0f); // brief pause before player's turn
+                yield return StartCoroutine(PlayerTurnCoroutine());
+            }
+            else if (opponentTurn)
+            {
+                yield return new WaitForSeconds(1.0f); // brief pause before opponent's turn
+                yield return StartCoroutine(OpponentTurnCoroutine());
+            }
+        }
+    }
+
+    IEnumerator PlayerTurnCoroutine()
+    {
+        CheckHands();
+        yield return new WaitUntil(() => !playerTurn);
+    }
+
+    IEnumerator OpponentTurnCoroutine()
+    {
+        CheckHands();
+        yield return new WaitUntil(() => !opponentTurn);
     }
 }
