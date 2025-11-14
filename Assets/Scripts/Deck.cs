@@ -53,6 +53,12 @@ public class Deck : MonoBehaviour
         _usedCards.Clear();
     }
 
+    public void ClearAllCards()
+    {
+        _deckCards.Clear();
+        _usedCards.Clear();
+    }
+
     public void PrintDebugInfo() {
         foreach (Card card in _deckCards)
             card.printCardDebugInfo();

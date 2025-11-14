@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using Unity.VisualScripting;
 using UnityEngine;
+using System.Linq;
+using System;
 
 public class KoiKoiGameManager : MonoBehaviour
 {
@@ -54,9 +56,46 @@ public class KoiKoiGameManager : MonoBehaviour
     [SerializeField] private GameObject viewMatchesButton;
     [SerializeField] private GameObject viewOpponentMatchesButton;
     private bool gameOver = false;
+    private int playerScore = 0;
+    private int opponentScore = 0;
+    private int currentRound = 0;
+
+    private CameraController cameraController;
+    [SerializeField] private GameObject newGameButton;
 
     IEnumerator Start()
     {
+        cameraController = FindFirstObjectByType<CameraController>();
+        LoadCards();
+        CreateDeckOnScreen();
+        yield return StartCoroutine(DealCardsCoroutine());
+        CheckIfValidGame();
+        CheckAndHandleThreeOfAKindOnBoard();
+        StartCoroutine(GameLoop());
+    }
+
+    public void NewGame()
+    {
+        newGameButton.SetActive(false);
+        StopAllCoroutines();
+        cameraController.ResetView();
+        StartCoroutine(NewGameCoroutine());
+    }
+
+    public IEnumerator NewGameCoroutine()
+    {
+        DestroyEverything();
+        LoadCards();
+        CreateDeckOnScreen();
+        yield return StartCoroutine(DealCardsCoroutine());
+        CheckIfValidGame();
+        CheckAndHandleThreeOfAKindOnBoard();
+        StartCoroutine(GameLoop());
+    }
+
+    public void LoadCards()
+    {
+        // Load card data from resources and instantiate cards
         CardData[] cardDataArray = Resources.LoadAll<CardData>("GameData/CardData");
         if (stackAnchor == null)
         {
@@ -72,11 +111,62 @@ public class KoiKoiGameManager : MonoBehaviour
             card.LoadCardData(cardDataArray[i]);
             card.gameObject.name = card.MonthName + card.AnimalName + card.BrightName + card.RibbonName;
         }
+    }
 
-        CreateDeckOnScreen();
-        yield return StartCoroutine(DealCardsCoroutine());
-        StartCoroutine(GameLoop());
-        // MoveCards();
+    public void DestroyEverything()
+    {
+        if (deck != null)
+        {
+            deck.ClearAllCards();
+        }
+        // Clear row arrays
+        for (int i = 0; i < 8; i++)
+        {
+            topRowCards[i] = null;
+            bottomRowCards[i] = null;
+        }
+        HideMarkers();
+        deckCards.Clear();
+        playerHandCards.Clear();
+        opponentHandCards.Clear();
+        centerCards.Clear();
+        playerMatchedCards.Clear();
+        opponentMatchedCards.Clear();
+        tempMatchedCards.Clear();
+        playerBrightCards.Clear();
+        opponentBrightCards.Clear();
+        playerAnimalCards.Clear();
+        opponentAnimalCards.Clear();
+        playerRibbonCards.Clear();
+        opponentRibbonCards.Clear();
+        playerShitCards.Clear();
+        opponentShitCards.Clear();
+
+        selectedCard = null;
+        playerTurn = false;
+        opponentTurn = false;
+        timeToDraw = false;
+
+        foreach (Card card in FindObjectsByType<Card>(FindObjectsSortMode.None))
+        {
+            if (card.gameObject.name == "OG Card" || card.gameObject.name == "Card Template") continue;
+            Destroy(card.gameObject);
+        }
+
+        playerShitCardsPosition = new Vector3(-0.215f, 0.7055f, -0.21f);
+        playerRibbonCardsPosition = new Vector3(-0.215f, 0.7055f, -0.17f);
+        playerAnimalCardsPosition = new Vector3(-0.215f, 0.7055f, -0.13f);
+        playerBrightCardsPosition = new Vector3(-0.215f, 0.7055f, -0.09f);
+
+        opponentShitCardsPosition = new Vector3(0.215f, 0.7055f, 0.21f);
+        opponentRibbonCardsPosition = new Vector3(0.215f, 0.7055f, 0.17f);
+        opponentAnimalCardsPosition = new Vector3(0.215f, 0.7055f, 0.13f);
+        opponentBrightCardsPosition = new Vector3(0.215f, 0.7055f, 0.09f);
+
+        // Reset UI
+        viewMatchesButton.SetActive(false);
+        viewOpponentMatchesButton.SetActive(false);
+        gameOver = false;
     }
 
     public void MoveCards()
@@ -264,9 +354,179 @@ public class KoiKoiGameManager : MonoBehaviour
 
     void CheckIfValidGame()
     {
-        // Four of a kind
-        // Four pairs
-        // Instant win
+        // Four of a kind or four pairs on the board, invalid
+        bool invalidGame = CheckLucky(centerCards);
+        if (invalidGame)
+        {
+            Debug.Log("Invalid game detected due to four of a kind or four pairs on the board.");
+            gameOver = true;
+            DeactivateParticlesOnCards();
+            HideMarkers();
+            newGameButton.SetActive(true);
+            return;
+        }
+
+        // Four of a kind or four pairs in hand, instant win 6 points
+        bool playerInstantWin = CheckLucky(playerHandCards);
+        bool opponentInstantWin = CheckLucky(opponentHandCards);
+        if (playerInstantWin ^ opponentInstantWin)
+        {
+            // exactly one player has an instant win
+            if (playerInstantWin)
+            {
+                Debug.Log("Player wins instantly with a lucky hand!");
+                playerScore += 6;
+            }
+            else
+            {
+                Debug.Log("Opponent wins instantly with a lucky hand!");
+                opponentScore += 6;
+            }
+            gameOver = true;
+            DeactivateParticlesOnCards();
+            HideMarkers();
+            newGameButton.SetActive(true);
+        }
+    }
+
+    bool CheckLucky(List<Card> hand)
+    {
+        Dictionary<string, int> monthCounts = new Dictionary<string, int>();
+
+        // Count months
+        foreach (Card card in centerCards)
+        {
+            if (!monthCounts.ContainsKey(card.MonthName))
+                monthCounts[card.MonthName] = 0;
+
+            monthCounts[card.MonthName]++;
+        }
+
+        // Detect four of a kind
+        bool fourOfAKind = monthCounts.ContainsValue(4);
+
+        // Detect four pairs (4+ distinct month pairs)
+        bool fourPairs = monthCounts.Values.Count(v => v == 2) >= 4;
+
+        return fourOfAKind || fourPairs;
+    }
+
+    String CheckThreeOfAKind()
+    {
+        Dictionary<string, int> monthCounts = new Dictionary<string, int>();
+        String monthWithThreeOfAKind = "";
+
+        // Count months
+        foreach (Card card in centerCards)
+        {
+            if (!monthCounts.ContainsKey(card.MonthName))
+                monthCounts[card.MonthName] = 0;
+
+            monthCounts[card.MonthName]++;
+        }
+
+        // Detect three of a kind
+        if (monthCounts.ContainsValue(3))
+        {
+            foreach (var pair in monthCounts)
+            {
+                if (pair.Value == 3)
+                {
+                    monthWithThreeOfAKind = pair.Key;
+                }
+            }
+        }
+        return monthWithThreeOfAKind;
+    }
+    
+    void CheckAndHandleThreeOfAKindOnBoard()
+    {
+        Dictionary<string, int> monthCounts = new Dictionary<string, int>();
+
+        // Count months
+        foreach (Card card in centerCards)
+        {
+            if (!monthCounts.ContainsKey(card.MonthName))
+                monthCounts[card.MonthName] = 0;
+
+            monthCounts[card.MonthName]++;
+        }
+
+        // Detect three of a kind
+        bool threeOfAKind = monthCounts.ContainsValue(3);
+        if (threeOfAKind)
+        {
+            foreach (var pair in monthCounts)
+            {
+                if (pair.Value == 3)
+                {
+                    StartCoroutine(MatchThreeOfAKind(pair.Key));
+                    break;
+                }
+            }
+        }
+    }
+
+    IEnumerator MatchThreeOfAKind(string month)
+    {
+        // locate first card of that month in center cards
+        Card firstCard = centerCards.Find(card => card.MonthName == month);
+        // locate second card of that month in center cards
+        Card secondCard = centerCards.Find(card => card.MonthName == month && card != firstCard);
+        // locate third card of that month in center cards
+        Card thirdCard = centerCards.Find(card => card.MonthName == month && card != firstCard && card != secondCard);
+        if (firstCard != null && secondCard != null && thirdCard != null)
+        {
+            yield return StartCoroutine(MoveRigidbodyToPosition(secondCard.GetComponent<Rigidbody>(),
+                new Vector3(firstCard.transform.position.x, cardRestingHeight + 0.002f,
+                firstCard.transform.position.z - 0.005f),
+                Quaternion.Euler(0, 180, 0),
+                0.1f));
+            RemoveFromCenterGrid(secondCard);
+            yield return StartCoroutine(MoveRigidbodyToPosition(thirdCard.GetComponent<Rigidbody>(),
+                new Vector3(secondCard.transform.position.x, cardRestingHeight + 0.004f,
+                secondCard.transform.position.z - 0.005f),
+                Quaternion.Euler(0, 180, 0),
+                0.1f));
+            RemoveFromCenterGrid(thirdCard);
+            if (playerTurn)
+            {
+                playerMatchedCards.Remove(firstCard);
+                playerMatchedCards.Remove(secondCard);
+                playerMatchedCards.Remove(thirdCard);
+            }
+            else if (opponentTurn)
+            {
+                opponentMatchedCards.Remove(firstCard);
+                opponentMatchedCards.Remove(secondCard);
+                opponentMatchedCards.Remove(thirdCard);
+            }
+            tempMatchedCards.Remove(firstCard);
+            tempMatchedCards.Remove(secondCard);
+            tempMatchedCards.Remove(thirdCard);
+        }
+    }
+
+    void MatchThreeOfAKindFromDraw(Card drawnCard)
+    {
+        StartCoroutine(MatchThreeOfAKind(drawnCard.MonthName));
+    }
+    
+    private void RemoveFromCenterGrid(Card card)
+    {
+        for (int i = 0; i < topRowCards.Length; i++)
+        {
+            if (topRowCards[i] != null && topRowCards[i].GetComponent<Card>() == card)
+            {
+                topRowCards[i] = null;
+                return;
+            }
+            if (bottomRowCards[i] != null && bottomRowCards[i].GetComponent<Card>() == card)
+            {
+                bottomRowCards[i] = null;
+                return;
+            }
+        }
     }
 
     void CheckHands()
@@ -356,7 +616,7 @@ public class KoiKoiGameManager : MonoBehaviour
     public IEnumerator MatchCoroutine(Card centerCard)
     {
         yield return StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(),
-            new Vector3(centerCard.transform.position.x, cardRestingHeight + 0.002f,
+            new Vector3(centerCard.transform.position.x, centerCard.transform.position.y + 0.002f,
             centerCard.transform.position.z - 0.01f),
             Quaternion.Euler(0, 180, 0),
             0.1f));
@@ -364,26 +624,60 @@ public class KoiKoiGameManager : MonoBehaviour
         DeactivateParticlesOnCards();
         if (playerTurn)
         {
+            // Three of a kind on board, claim all cards of that month
+            if (CheckThreeOfAKind() == selectedCard.MonthName)
+            {
+                foreach (Card card in centerCards)
+                {
+                    if (card.MonthName == selectedCard.MonthName)
+                    {
+                        playerMatchedCards.Add(card);
+                        tempMatchedCards.Add(card);
+                    }
+                }
+            }
+            else
+            {
+                playerMatchedCards.Add(centerCard);
+                tempMatchedCards.Add(centerCard);
+            }            
             playerHandCards.Remove(selectedCard);
             playerMatchedCards.Add(selectedCard);
-            playerMatchedCards.Add(centerCard);
+            centerCards.Add(selectedCard);
         }
         if (opponentTurn)
         {
+            // Three of a kind on board, claim all cards of that month
+            if (CheckThreeOfAKind() == selectedCard.MonthName)
+            {
+                foreach (Card card in centerCards)
+                {
+                    if (card.MonthName == selectedCard.MonthName)
+                    {
+                        opponentMatchedCards.Add(card);
+                        tempMatchedCards.Add(card);
+                    }
+                }
+            }
+            else
+            {
+                opponentMatchedCards.Add(centerCard);
+                tempMatchedCards.Add(centerCard);
+            }  
             opponentHandCards.Remove(selectedCard);
             opponentMatchedCards.Add(selectedCard);
             opponentMatchedCards.Add(centerCard);
+            centerCards.Add(selectedCard);
         }
-        centerCards.Remove(centerCard);
+        // centerCards.Remove(centerCard);
         tempMatchedCards.Add(selectedCard);
-        tempMatchedCards.Add(centerCard);
+        
         selectedCard = null;
 
         if (timeToDraw)
         {
             yield return new WaitForSeconds(0.8f); // short pause before claiming matches
             ClaimMatches();
-            Debug.Log($"Player turn: {playerTurn}, Opponent turn: {opponentTurn}");
             if (playerTurn)
             {
                 Debug.Log("Restructuring Player Hand...");
@@ -401,7 +695,7 @@ public class KoiKoiGameManager : MonoBehaviour
         else
         {
             timeToDraw = true;
-        }        
+        }  
         HideMarkers();
     }
 
@@ -414,7 +708,8 @@ public class KoiKoiGameManager : MonoBehaviour
     {
         yield return StartCoroutine(MoveRigidbodyToPosition(selectedCard.GetComponent<Rigidbody>(),
             new Vector3(position.x, cardRestingHeight, position.z),
-            selectedCard.transform.rotation, 0.1f));
+            Quaternion.Euler(0, 180, 0),
+            0.1f));
 
         centerCards.Add(selectedCard);
         if (playerHandCards.Contains(selectedCard))
@@ -466,7 +761,32 @@ public class KoiKoiGameManager : MonoBehaviour
         StartCoroutine(MoveRigidbodyToPosition(rb,
         new Vector3(card.transform.position.x + 0.05f, card.transform.position.y + 0.02f, card.transform.position.z),
         dealRotation, 0.1f));
-        CheckHands();
+        if (tempMatchedCards.Count(c => c.MonthName == selectedCard.MonthName) >= 2 &&
+            centerCards.Count(c => c.MonthName == selectedCard.MonthName) != 3)
+        {
+            selectedCard = null;
+            tempMatchedCards.Clear();
+            centerCards.Add(card);
+            MatchThreeOfAKindFromDraw(card);
+            // change turn
+            if (playerTurn)
+            {
+                Debug.Log("Restructuring Player Hand...");
+                RestructurePlayerHand();
+            }
+            else if (opponentTurn)
+            {
+                Debug.Log("Restructuring Opponent Hand...");
+                RestructureOpponentHand();
+            }
+            timeToDraw = false;
+            playerTurn = !playerTurn;
+            opponentTurn = !opponentTurn;
+        }
+        else
+        {
+            CheckHands();
+        }        
     }
 
     public void DeactivateParticlesOnCards()
@@ -548,6 +868,7 @@ public class KoiKoiGameManager : MonoBehaviour
     {
         foreach (Card card in tempMatchedCards)
         {
+            centerCards.Remove(card);
             if (card.IsBright)
             {
                 if (playerTurn)
@@ -799,17 +1120,18 @@ public class KoiKoiGameManager : MonoBehaviour
                 yield return StartCoroutine(OpponentTurnCoroutine());
             }
         }
+        Debug.Log("Game Over!");
     }
 
     IEnumerator PlayerTurnCoroutine()
     {
         CheckHands();
-        yield return new WaitUntil(() => !playerTurn);
+        yield return new WaitUntil(() => !playerTurn || gameOver);
     }
 
     IEnumerator OpponentTurnCoroutine()
     {
         CheckHands();
-        yield return new WaitUntil(() => !opponentTurn);
+        yield return new WaitUntil(() => !opponentTurn || gameOver);
     }
 }

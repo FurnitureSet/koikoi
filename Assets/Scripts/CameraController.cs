@@ -23,6 +23,8 @@ public class CameraController : MonoBehaviour
     public void ToggleView()
     {
         showingMatches = !showingMatches;
+        showingOpponentMatches = false;
+        opponentButtonText.text = "Opponent Matches";
 
         if (moveCoroutine != null)
             StopCoroutine(moveCoroutine);
@@ -39,6 +41,8 @@ public class CameraController : MonoBehaviour
     public void ToggleOpponentView()
     {
         showingOpponentMatches = !showingOpponentMatches;
+        showingMatches = false;
+        buttonText.text = "View Matches";
 
         if (moveCoroutine != null)
             StopCoroutine(moveCoroutine);
@@ -85,6 +89,27 @@ public class CameraController : MonoBehaviour
             transform.position = Vector3.Lerp(startPos, endPos, t);
             transform.rotation = Quaternion.Slerp(startRot, endRot, t);
             yield return null;
+        }
+    }
+
+    public void ResetView()
+    {
+        showingMatches = false;
+        showingOpponentMatches = false;
+
+        if (moveCoroutine != null)
+            StopCoroutine(moveCoroutine);
+
+        moveCoroutine = StartCoroutine(MoveCamera(false));
+
+        // Update button labels
+        if (buttonText != null)
+        {
+            buttonText.text = "View Matches";
+        }
+        if (opponentButtonText != null)
+        {
+            opponentButtonText.text = "Opponent Matches";
         }
     }
 }
