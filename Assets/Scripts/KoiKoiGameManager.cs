@@ -1688,7 +1688,15 @@ public class KoiKoiGameManager : MonoBehaviour
     void ExhuastiveDraw()
     {
         Debug.Log("Exhaustive Draw! No more cards in hands.");
-        NewGame();
+        if (currentRound < 11)
+        {
+            NewGame();
+        }
+        else
+        {
+            gameOverText.gameObject.SetActive(true);
+            newGameButton.SetActive(true);
+        }
     }
 
 }
