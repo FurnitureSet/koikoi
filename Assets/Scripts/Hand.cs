@@ -24,13 +24,14 @@ public class Hand : MonoBehaviour
         
     }
 
-    private Card GetCard(int id)
-    {
-        
-    }
+    // commented to make compiler happy
+    // private Card GetCard(int id)
+    // {
+
+    // }
 
     public void ResetHand()
     {
-        
+
     }
 }

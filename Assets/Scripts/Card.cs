@@ -187,7 +187,6 @@ public class Card : MonoBehaviour {
 
     public void OnMouseDown()
     {
-        Debug.Log($"Clicked on card: {MonthName} {AnimalName} {BrightName} {RibbonName}");
         // select player card
         if (gameManager.playerTurn && gameManager.playerHandCards.Contains(this) && !gameManager.timeToDraw)
         {
@@ -203,8 +202,10 @@ public class Card : MonoBehaviour {
             && this != gameManager.selectedCard && !gameManager.timeToDraw)
         {
             // prevent matching opponent's card during player's turn and vice versa
-            if ((gameManager.playerTurn && !gameManager.opponentHandCards.Contains(this)) ||
-                (gameManager.opponentTurn && !gameManager.playerHandCards.Contains(this)))
+            // also the deck?? Wow.
+            if (((gameManager.playerTurn && !gameManager.opponentHandCards.Contains(this)) ||
+                (gameManager.opponentTurn && !gameManager.playerHandCards.Contains(this))) &&
+                !gameManager.deckCards.Contains(this))
             {
                 gameManager.Match(this);   
             }

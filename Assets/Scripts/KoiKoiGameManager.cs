@@ -5,6 +5,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using System.Linq;
 using System;
+using TMPro;
 
 public class KoiKoiGameManager : MonoBehaviour
 {
@@ -35,12 +36,12 @@ public class KoiKoiGameManager : MonoBehaviour
     public GameObject[] topRowCards = new GameObject[8];
     public GameObject[] bottomRowCards = new GameObject[8];
     private List<Card> tempMatchedCards = new List<Card>();
-    private List<Card> playerBrightCards = new List<Card>();
-    private List<Card> opponentBrightCards = new List<Card>();
-    private List<Card> playerAnimalCards = new List<Card>();
-    private List<Card> opponentAnimalCards = new List<Card>();
-    private List<Card> playerRibbonCards = new List<Card>();
-    private List<Card> opponentRibbonCards = new List<Card>();
+    [SerializeField] private List<Card> playerBrightCards = new List<Card>();
+    [SerializeField] private List<Card> opponentBrightCards = new List<Card>();
+    [SerializeField] private List<Card> playerAnimalCards = new List<Card>();
+    [SerializeField] private List<Card> opponentAnimalCards = new List<Card>();
+    [SerializeField] private List<Card> playerRibbonCards = new List<Card>();
+    [SerializeField] private List<Card> opponentRibbonCards = new List<Card>();
     private List<Card> playerShitCards = new List<Card>();
     private List<Card> opponentShitCards = new List<Card>();
 
@@ -62,12 +63,35 @@ public class KoiKoiGameManager : MonoBehaviour
 
     private CameraController cameraController;
     [SerializeField] private GameObject newGameButton;
+    [SerializeField] private TMP_Text playerScoreText;
+    [SerializeField] private TMP_Text opponentScoreText;
+    [SerializeField] private TMP_Text currentRoundText;
+
+    private bool playerWin = false;
+    private bool opponentWin = false;
+    private bool playerKoiKoi = false;
+    private bool opponentKoiKoi = false;
+
+    [SerializeField] private TMP_Text playerWinText;
+    [SerializeField] private TMP_Text opponentWinText;
+    [SerializeField] private TMP_Text tempPlayerPointsText;
+    [SerializeField] private TMP_Text tempOpponentPointsText;
+    [SerializeField] private GameObject playerClaimWinButton;
+    [SerializeField] private GameObject opponentClaimWinButton;
+    [SerializeField] private GameObject playerKoiKoiButton;
+    [SerializeField] private GameObject opponentKoiKoiButton;
+    [SerializeField] private TMP_Text drawText;
+    [SerializeField] private TMP_Text gameOverText;
+    [SerializeField] private TMP_Text playerWinDataText;
+    [SerializeField] private TMP_Text opponentWinDataText;
 
     IEnumerator Start()
     {
+        playerTurn = true;
         cameraController = FindFirstObjectByType<CameraController>();
         LoadCards();
         CreateDeckOnScreen();
+        currentRoundText.text = CurrentRoundSwitch(currentRound);
         yield return StartCoroutine(DealCardsCoroutine());
         CheckIfValidGame();
         CheckAndHandleThreeOfAKindOnBoard();
@@ -76,10 +100,57 @@ public class KoiKoiGameManager : MonoBehaviour
 
     public void NewGame()
     {
+        
         newGameButton.SetActive(false);
         StopAllCoroutines();
+        if (currentRound < 11)
+        {
+            currentRound++;
+        }
+        else
+        {
+            currentRound = 0;
+            playerScore = 0;
+            playerScoreText.text = "Player Score: " + playerScore.ToString();
+            opponentScore = 0;
+            opponentScoreText.text = "Opponent Score: " + opponentScore.ToString();
+        }        
+        currentRoundText.text = CurrentRoundSwitch(currentRound);
         cameraController.ResetView();
         StartCoroutine(NewGameCoroutine());
+    }
+
+    String CurrentRoundSwitch(int round)
+    {
+        switch (round)
+        {
+            case 0:
+                return "January";
+            case 1:
+                return "February";
+            case 2:
+                return "March";
+            case 3:
+                return "April";
+            case 4:
+                return "May";
+            case 5:
+                return "June";
+            case 6:
+                return "July";
+            case 7:
+                return "August";
+            case 8:
+                return "September";
+            case 9:
+                return "October";
+            case 10:
+                return "November";
+            case 11:
+                return "December";
+            default:
+                return "Unknown";
+        }
     }
 
     public IEnumerator NewGameCoroutine()
@@ -107,7 +178,6 @@ public class KoiKoiGameManager : MonoBehaviour
             Card card = Instantiate(cardPrefab, stackAnchor.position, stackAnchor.rotation);
             deck.AddCard(card);
             deckCards.Add(card);
-            Debug.Log($"Loaded Card Data: {cardDataArray[i].name}");
             card.LoadCardData(cardDataArray[i]);
             card.gameObject.name = card.MonthName + card.AnimalName + card.BrightName + card.RibbonName;
         }
@@ -143,9 +213,16 @@ public class KoiKoiGameManager : MonoBehaviour
         opponentShitCards.Clear();
 
         selectedCard = null;
-        playerTurn = false;
-        opponentTurn = false;
         timeToDraw = false;
+        playerKoiKoi = false;
+        opponentKoiKoi = false;
+        playerWin = false;
+        opponentWin = false;
+
+        previousPlayerTempScore = 0;
+        playerTempScore = 0;
+        previousOpponentTempScore = 0;
+        opponentTempScore = 0;
 
         foreach (Card card in FindObjectsByType<Card>(FindObjectsSortMode.None))
         {
@@ -438,7 +515,7 @@ public class KoiKoiGameManager : MonoBehaviour
         }
         return monthWithThreeOfAKind;
     }
-    
+
     void CheckAndHandleThreeOfAKindOnBoard()
     {
         Dictionary<string, int> monthCounts = new Dictionary<string, int>();
@@ -511,7 +588,7 @@ public class KoiKoiGameManager : MonoBehaviour
     {
         StartCoroutine(MatchThreeOfAKind(drawnCard.MonthName));
     }
-    
+
     private void RemoveFromCenterGrid(Card card)
     {
         for (int i = 0; i < topRowCards.Length; i++)
@@ -531,11 +608,9 @@ public class KoiKoiGameManager : MonoBehaviour
 
     void CheckHands()
     {
-        Debug.Log("Checking hands for possible matches...");
         bool canMatch = false;
         if (timeToDraw)
         {
-            Debug.Log("Time to draw!");
             foreach (Card centerCard in centerCards)
             {
                 if (selectedCard.MonthName == centerCard.MonthName)
@@ -640,7 +715,7 @@ public class KoiKoiGameManager : MonoBehaviour
             {
                 playerMatchedCards.Add(centerCard);
                 tempMatchedCards.Add(centerCard);
-            }            
+            }
             playerHandCards.Remove(selectedCard);
             playerMatchedCards.Add(selectedCard);
             centerCards.Add(selectedCard);
@@ -663,39 +738,29 @@ public class KoiKoiGameManager : MonoBehaviour
             {
                 opponentMatchedCards.Add(centerCard);
                 tempMatchedCards.Add(centerCard);
-            }  
+            }
             opponentHandCards.Remove(selectedCard);
             opponentMatchedCards.Add(selectedCard);
             opponentMatchedCards.Add(centerCard);
             centerCards.Add(selectedCard);
         }
-        // centerCards.Remove(centerCard);
         tempMatchedCards.Add(selectedCard);
-        
+
         selectedCard = null;
 
         if (timeToDraw)
         {
             yield return new WaitForSeconds(0.8f); // short pause before claiming matches
             ClaimMatches();
-            if (playerTurn)
-            {
-                Debug.Log("Restructuring Player Hand...");
-                RestructurePlayerHand();
-            }
-            else if (opponentTurn)
-            {
-                Debug.Log("Restructuring Opponent Hand...");
-                RestructureOpponentHand();
-            }
+            RestructurePlayerHand();
+            RestructureOpponentHand();
             timeToDraw = false;
-            playerTurn = !playerTurn;
-            opponentTurn = !opponentTurn;
         }
         else
         {
+            drawText.gameObject.SetActive(true);
             timeToDraw = true;
-        }  
+        }
         HideMarkers();
     }
 
@@ -728,28 +793,20 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             yield return new WaitForSeconds(0.8f); // short pause before claiming matches
             ClaimMatches();
-            if (playerTurn)
-            {
-                Debug.Log("Restructuring Player Hand...");
-                RestructurePlayerHand();
-            }
-            else if (opponentTurn)
-            {
-                Debug.Log("Restructuring Opponent Hand...");
-                RestructureOpponentHand();
-            }
+            RestructurePlayerHand();
+            RestructureOpponentHand();
             timeToDraw = false;
-            playerTurn = !playerTurn;
-            opponentTurn = !opponentTurn;
         }
         else
         {
+            drawText.gameObject.SetActive(true);
             timeToDraw = true;
-        } 
+        }
     }
 
     public void DrawFromDeck()
     {
+        drawText.gameObject.SetActive(false);
         Card card = deck.DrawCard();
         selectedCard = card;
         deckCards.Remove(card);
@@ -768,25 +825,15 @@ public class KoiKoiGameManager : MonoBehaviour
             tempMatchedCards.Clear();
             centerCards.Add(card);
             MatchThreeOfAKindFromDraw(card);
-            // change turn
-            if (playerTurn)
-            {
-                Debug.Log("Restructuring Player Hand...");
-                RestructurePlayerHand();
-            }
-            else if (opponentTurn)
-            {
-                Debug.Log("Restructuring Opponent Hand...");
-                RestructureOpponentHand();
-            }
             timeToDraw = false;
-            playerTurn = !playerTurn;
-            opponentTurn = !opponentTurn;
+            RestructurePlayerHand();
+            RestructureOpponentHand();
+            SwitchPlayerTurn();
         }
         else
         {
             CheckHands();
-        }        
+        }
     }
 
     public void DeactivateParticlesOnCards()
@@ -907,7 +954,7 @@ public class KoiKoiGameManager : MonoBehaviour
                         opponentBrightCardsPosition.x -= 0.03f;
                     }
                 }
-                
+
             }
             else if (card.IsAnimal)
             {
@@ -967,7 +1014,7 @@ public class KoiKoiGameManager : MonoBehaviour
                     {
                         playerRibbonCardsPosition.x += 0.03f;
                     }
-                } 
+                }
                 else if (opponentTurn)
                 {
                     opponentRibbonCards.Add(card);
@@ -1048,6 +1095,70 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             viewOpponentMatchesButton.SetActive(true);
         }
+        if (playerTurn)
+        {
+            Debug.Log("Player turn, figuring out what to do");
+            // check for player yaku
+            if (playerKoiKoi)
+            {
+                Debug.Log("Checking for player Koi-Koi Yaku");
+                CheckYakuPlayerKoiKoi();
+                return;
+            }
+            else
+            {
+                Debug.Log("Checking for player Yaku");
+                int playerScoreThisTurn = CheckYakuPlayer();
+                if (playerScoreThisTurn > 0)
+                {
+                    ShowPlayerWinScreen();
+                }
+                else
+                {
+                    SwitchPlayerTurn();
+                    return;
+                }
+            }
+        }
+        if (opponentTurn)
+        {
+            Debug.Log("Opponent turn, figuring out what to do");
+            // check for opponent yaku
+            if (opponentKoiKoi)
+            {
+                Debug.Log("Checking for opponent Koi-Koi Yaku");
+                CheckYakuOpponentKoiKoi();
+                return;
+            }
+            else
+            {
+                Debug.Log("Checking for opponent Yaku");
+                int opponentScoreThisTurn = CheckYakuOpponent();
+                if (opponentScoreThisTurn > 0)
+                {
+                    ShowOpponentWinScreen();
+                }
+                else
+                {
+                    SwitchPlayerTurn();
+                    return;
+                }
+            }
+        }
+    }
+
+    void SwitchPlayerTurn()
+    {
+        playerTurn = !playerTurn;
+        opponentTurn = !opponentTurn;
+        if (playerTurn)
+        {
+            Debug.Log("PLAYER TURN");
+        }
+        else if (opponentTurn)
+        {
+            Debug.Log("OPPONENT TURN");
+        }
     }
 
     void RestructurePlayerHand()
@@ -1078,7 +1189,6 @@ public class KoiKoiGameManager : MonoBehaviour
 
     void RestructureOpponentHand()
     {
-        Debug.Log("Entered RestructureOpponentHand()");
         if (opponentHandCards.Count == 0) return;
 
         // Determine total width based on spacing (0.03 between each card)
@@ -1106,7 +1216,6 @@ public class KoiKoiGameManager : MonoBehaviour
     IEnumerator GameLoop()
     {
         // Main game loop logic
-        playerTurn = true;
         while (!gameOver)
         {
             if (playerTurn)
@@ -1134,4 +1243,375 @@ public class KoiKoiGameManager : MonoBehaviour
         CheckHands();
         yield return new WaitUntil(() => !opponentTurn || gameOver);
     }
+
+    private int previousPlayerTempScore = 0;
+    private int playerTempScore = 0;
+
+    int CheckYakuPlayer()
+    {
+        String winData = "";
+        playerTempScore = 0;
+        int winnings = 0;
+
+        // 10 shit cards
+        if (playerShitCards.Count >= 10)
+        {
+            // 10 shit cards = 1 point + 1 point for each additional
+            winnings = playerShitCards.Count - 9;
+            playerTempScore += winnings;
+            winData += $"Shit cards: {winnings}  ";
+        }
+        // 5 ribbon cards
+        if (playerRibbonCards.Count >= 5)
+        {
+            // 5 ribbon cards = 1 point + 1 point for each additional
+            winnings = playerRibbonCards.Count - 4;
+            playerTempScore += winnings;
+            winData += $"Ribbon cards: {winnings}  ";
+        }
+        // 5 animal cards
+        if (playerAnimalCards.Count >= 5)
+        {
+            // 5 animal cards = 1 point + 1 point for each additional
+            winnings = playerAnimalCards.Count - 4;
+            playerTempScore += winnings;
+            winData += $"Animal cards: {winnings}  ";
+        }
+        // Ino-shika-cho
+        bool hasBoar = playerAnimalCards.Any(c => c.AnimalName == "Boar");
+        bool hasDeer = playerAnimalCards.Any(c => c.AnimalName == "Deer");
+        bool hasButterfly = playerAnimalCards.Any(c => c.AnimalName == "Butterfly");
+
+        if (hasBoar && hasDeer && hasButterfly)
+        {
+            playerTempScore += 5;
+            winData += "Ino-shika-cho: 5  ";
+        }
+        // Red poetry ribbons
+        if (playerRibbonCards.Count(c => c.RibbonName == "Red Poetry") >= 3)
+        {
+            playerTempScore += 6;
+            winData += "Red poetry ribbons: 6  ";
+        }
+        // Blue ribbons
+        if (playerRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            playerTempScore += 6;
+            winData += "Blue ribbons: 6  ";
+        }
+        // Brights
+        int brightCount = playerBrightCards.Count;
+        if (brightCount >= 5)
+        {
+            playerTempScore += 15;
+            winData += "Five brights: 15  ";
+        }
+        else if (brightCount == 4 && !playerBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            playerTempScore += 10;
+            winData += "Four brights (no RainMan): 10  ";
+        }
+        else if (brightCount == 4 && playerBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            playerTempScore += 8;
+            winData += "Four brights (with RainMan): 8  ";
+        }
+        else if (brightCount == 3 && !playerBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            playerTempScore += 6;
+            winData += "Three brights (no RainMan): 6  ";
+        }
+        // Flower/Moon viewing
+        bool hasSakura = playerBrightCards.Any(c => c.BrightName == "Sakura");
+        bool hasMoon = playerBrightCards.Any(c => c.BrightName == "Moon");
+        bool hasSakeCup = playerAnimalCards.Any(c => c.AnimalName == "Sake");
+        if (hasMoon && hasSakeCup)
+        {
+            playerTempScore += 5;
+            winData += "Moon viewing: 5  ";
+        }
+        if (hasSakura && hasSakeCup)
+        {
+            playerTempScore += 5;
+            winData += "Sakura viewing: 5  ";
+        }
+        if (playerTempScore >= 7)
+        {
+            winData += $"\nOver 7 points, doubled: {playerTempScore} * 2 = {playerTempScore * 2}  ";
+            playerTempScore *= 2; // double points for 7 or more
+        }
+        if (previousPlayerTempScore == 0 && playerTempScore > 0)
+        {
+            previousPlayerTempScore = playerTempScore;
+            tempPlayerPointsText.text = "Winning points: " + playerTempScore.ToString();
+        }
+        playerWinDataText.text = winData;
+        return playerTempScore;
+    }
+
+    void CheckYakuPlayerKoiKoi()
+    {
+        Debug.Log("Entered CheckYakuPlayerKoiKoi");
+        int score = CheckYakuPlayer();
+        if (score > previousPlayerTempScore)
+        {
+            Debug.Log("Player has achieved a new Yaku with a score of: " + score);
+            previousPlayerTempScore = score;
+            playerTempScore = score * 2; // double points for Koi-Koi
+            tempPlayerPointsText.text = "Winning points: " + playerTempScore.ToString();
+            playerWinDataText.text += "\nKoi-Koi! Points doubled to: " + playerTempScore.ToString();
+            ShowPlayerWinScreen();
+        }
+        else
+        {
+            Debug.Log("Player did not achieve a new Yaku during Koi-Koi.");
+            if (playerHandCards.Count == 0 && opponentHandCards.Count == 0 && !playerWin && !opponentWin)
+            {
+                ExhuastiveDraw();
+            }
+            else
+            {
+                SwitchPlayerTurn();
+            }
+        }
+    }
+
+    void ShowPlayerWinScreen()
+    {
+        playerWin = true;
+        playerWinText.gameObject.SetActive(true);
+        tempPlayerPointsText.gameObject.SetActive(true);
+        playerClaimWinButton.gameObject.SetActive(true);
+        playerWinDataText.gameObject.SetActive(true);
+        if (playerHandCards.Count > 0)
+        {
+            playerKoiKoiButton.gameObject.SetActive(true);
+        }
+    }
+
+    void DisablePlayerWinScreen()
+    {
+        playerWin = false;
+        playerWinText.gameObject.SetActive(false);
+        tempPlayerPointsText.gameObject.SetActive(false);
+        playerClaimWinButton.gameObject.SetActive(false);
+        playerKoiKoiButton.gameObject.SetActive(false);
+        playerWinDataText.gameObject.SetActive(false);
+    }
+
+    public void PlayerWin()
+    {
+        playerScore += playerTempScore;
+        playerScoreText.text = "Player Score: " + playerScore.ToString();
+        DisablePlayerWinScreen();
+        if (currentRound < 11)
+        {
+            NewGame();
+        }
+        else
+        {
+            gameOverText.gameObject.SetActive(true);
+            newGameButton.SetActive(true);
+        }
+    }
+
+    public void PlayerKoiKoi()
+    {
+        previousPlayerTempScore = CheckYakuPlayer();
+        playerKoiKoi = true;
+        playerWin = false;
+        DisablePlayerWinScreen();
+        playerTempScore = 0;
+        tempPlayerPointsText.text = "Winning points: " + playerTempScore.ToString();
+        SwitchPlayerTurn();
+    }
+
+    private int previousOpponentTempScore = 0;
+    private int opponentTempScore = 0;
+
+    int CheckYakuOpponent()
+    {
+        opponentTempScore = 0;
+        string winData = "";
+        int winnings = 0;
+
+        // 10 shit cards
+        if (opponentShitCards.Count >= 10)
+        {
+            // 10 shit cards = 1 point + 1 point for each additional
+            winnings = opponentShitCards.Count - 9;
+            opponentTempScore += winnings;
+            winData += $"Shit cards: {winnings}  ";
+        }
+        // 5 ribbon cards
+        if (opponentRibbonCards.Count >= 5)
+        {
+            // 5 ribbon cards = 1 point + 1 point for each additional
+            winnings = opponentRibbonCards.Count - 4;
+            opponentTempScore += winnings;
+            winData += $"Ribbon cards: {winnings}  ";
+        }
+        // 5 animal cards
+        if (opponentAnimalCards.Count >= 5)
+        {
+            // 5 animal cards = 1 point + 1 point for each additional
+            winnings = opponentAnimalCards.Count - 4;
+            opponentTempScore += winnings;
+            winData += $"Animal cards: {winnings}  ";
+        }
+        // Ino-shika-cho
+        bool hasBoar = opponentAnimalCards.Any(c => c.AnimalName == "Boar");
+        bool hasDeer = opponentAnimalCards.Any(c => c.AnimalName == "Deer");
+        bool hasButterfly = opponentAnimalCards.Any(c => c.AnimalName == "Butterfly");
+
+        if (hasBoar && hasDeer && hasButterfly)
+        {
+            opponentTempScore += 5;
+            winData += "Ino-shika-cho: 5  ";
+        }
+        // Red poetry ribbons
+        if (opponentRibbonCards.Count(c => c.RibbonName == "Red Poetry") >= 3)
+        {
+            opponentTempScore += 6;
+            winData += "Red poetry ribbons: 6  ";
+        }
+        // Blue ribbons
+        if (opponentRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            opponentTempScore += 6;
+            winData += "Blue ribbons: 6  ";
+        }
+        // Brights
+        int brightCount = opponentBrightCards.Count;
+        if (brightCount >= 5)
+        {
+            opponentTempScore += 15;
+            winData += "Five Brights: 15  ";
+        }
+        else if (brightCount == 4 && !opponentBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            opponentTempScore += 10;
+            winData += "Four Brights (no RainMan): 10  ";
+        }
+        else if (brightCount == 4 && opponentBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            opponentTempScore += 8;
+            winData += "Four Brights (with RainMan): 8  ";
+        }
+        else if (brightCount == 3 && !opponentBrightCards.Any(c => c.BrightName == "RainMan"))
+        {
+            opponentTempScore += 6;
+            winData += "Three Brights (no RainMan): 6  ";
+        }
+        // Flower/Moon viewing
+        bool hasSakura = opponentBrightCards.Any(c => c.BrightName == "Sakura");
+        bool hasMoon = opponentBrightCards.Any(c => c.BrightName == "Moon");
+        bool hasSakeCup = opponentAnimalCards.Any(c => c.AnimalName == "Sake");
+        if (hasMoon && hasSakeCup)
+        {
+            opponentTempScore += 5;
+            winData += "Moon and Sake Cup: 5  ";
+        }
+        if (hasSakura && hasSakeCup)
+        {
+            opponentTempScore += 5;
+            winData += "Sakura and Sake Cup: 5  ";
+        }
+        if (opponentTempScore >= 7)
+        {
+            winData += $"\nOver 7 points, doubled: {opponentTempScore} * 2 = {opponentTempScore * 2}  ";
+            opponentTempScore *= 2; // double points for 7 or more
+        }
+        if (previousOpponentTempScore == 0 && opponentTempScore > 0)
+        {
+            previousOpponentTempScore = opponentTempScore;
+            tempOpponentPointsText.text = "Winning points: " + opponentTempScore.ToString();
+        }
+        opponentWinDataText.text = winData;
+        return opponentTempScore;
+    }
+
+    void CheckYakuOpponentKoiKoi()
+    {
+        Debug.Log("Entered CheckYakuOpponentKoiKoi");
+        int score = CheckYakuOpponent();
+        if (score > previousOpponentTempScore)
+        {
+            Debug.Log("Opponent has achieved a new Yaku with a score of: " + score);
+            previousOpponentTempScore = score;
+            opponentTempScore = score * 2; // double points for Koi-Koi
+            opponentWinDataText.text += $"\nKoi-Koi! Points doubled to: {opponentTempScore}";
+            tempOpponentPointsText.text = "Winning points: " + opponentTempScore.ToString();
+            ShowOpponentWinScreen();
+        }
+        else
+        {
+            Debug.Log("Opponent did not achieve a new Yaku during Koi-Koi.");
+            if (playerHandCards.Count == 0 && opponentHandCards.Count == 0 && !playerWin && !opponentWin)
+            {
+                ExhuastiveDraw();
+            }
+            else
+            {
+                SwitchPlayerTurn();
+            }
+        }
+    }
+
+    void ShowOpponentWinScreen()
+    {
+        opponentWin = true;
+        opponentWinText.gameObject.SetActive(true);
+        tempOpponentPointsText.gameObject.SetActive(true);
+        opponentClaimWinButton.gameObject.SetActive(true);
+        opponentWinDataText.gameObject.SetActive(true);
+        if (opponentHandCards.Count > 0)
+        {
+            opponentKoiKoiButton.gameObject.SetActive(true);
+        }
+    }
+
+    void DisableOpponentWinScreen()
+    {
+        opponentWin = false;
+        opponentWinText.gameObject.SetActive(false);
+        tempOpponentPointsText.gameObject.SetActive(false);
+        opponentClaimWinButton.gameObject.SetActive(false);
+        opponentKoiKoiButton.gameObject.SetActive(false);
+        opponentWinDataText.gameObject.SetActive(false);
+    }
+
+    public void OpponentWin()
+    {
+        opponentScore += opponentTempScore;
+        opponentScoreText.text = "Opponent Score: " + opponentScore.ToString();
+        DisableOpponentWinScreen();
+        if (currentRound < 11)
+        {
+            NewGame();
+        }
+        else
+        {
+            gameOverText.gameObject.SetActive(true);
+            newGameButton.SetActive(true);
+        }
+    }
+
+    public void OpponentKoiKoi()
+    {
+        previousOpponentTempScore = CheckYakuOpponent();
+        opponentKoiKoi = true;
+        opponentWin = false;
+        DisableOpponentWinScreen();
+        opponentTempScore = 0;
+        tempOpponentPointsText.text = "Winning points: " + opponentTempScore.ToString();
+        SwitchPlayerTurn();
+    }
+    
+    void ExhuastiveDraw()
+    {
+        Debug.Log("Exhaustive Draw! No more cards in hands.");
+        NewGame();
+    }
+
 }
