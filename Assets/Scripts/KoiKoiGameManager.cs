@@ -72,6 +72,11 @@ public class KoiKoiGameManager : MonoBehaviour
     private bool playerKoiKoi = false;
     private bool opponentKoiKoi = false;
 
+    private int previousPlayerTempScore = 0;
+    private int playerTempScore = 0;
+    private int previousOpponentTempScore = 0;
+    private int opponentTempScore = 0;
+
     [SerializeField] private TMP_Text playerWinText;
     [SerializeField] private TMP_Text opponentWinText;
     [SerializeField] private TMP_Text tempPlayerPointsText;
@@ -243,11 +248,13 @@ public class KoiKoiGameManager : MonoBehaviour
         // Reset UI
         viewMatchesButton.SetActive(false);
         viewOpponentMatchesButton.SetActive(false);
+        gameOverText.gameObject.SetActive(false);
         gameOver = false;
     }
 
     public void MoveCards()
     {
+        // Display all cards in a grid to verify correct loading
         deck.Shuffle();
         const int columns = 12;
         const int rows = 4;
@@ -277,7 +284,7 @@ public class KoiKoiGameManager : MonoBehaviour
     {
         deck.Shuffle();
         Vector3 basePosition = stackAnchor != null ? stackAnchor.position : Vector3.zero;
-        Quaternion baseRotation = Quaternion.Euler(180, 180, 0);
+        Quaternion baseRotation = Quaternion.Euler(180, 0, 0);
         for (int i = 0; i < 48; i++)
         {
             Card card = deck.GetCardAt(i);
@@ -1244,9 +1251,6 @@ public class KoiKoiGameManager : MonoBehaviour
         yield return new WaitUntil(() => !opponentTurn || gameOver);
     }
 
-    private int previousPlayerTempScore = 0;
-    private int playerTempScore = 0;
-
     int CheckYakuPlayer()
     {
         String winData = "";
@@ -1261,21 +1265,50 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += winnings;
             winData += $"Shit cards: {winnings}  ";
         }
+        // Poetry AND Blue ribbons
+        if (playerRibbonCards.Count(c => c.RibbonName == "Text") >= 3 && 
+            playerRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            playerTempScore += 12;
+            winData += "Poetry AND Blue ribbons: 12  ";
+            // +1 for each additional ribbon
+            if (playerRibbonCards.Count > 6)
+            {
+                playerTempScore += playerRibbonCards.Count - 6;
+                winData += $" +{playerRibbonCards.Count - 6} for additional ribbons  ";
+            }
+        }
+        // Red poetry ribbons
+        else if (playerRibbonCards.Count(c => c.RibbonName == "Text") >= 3)
+        {
+            playerTempScore += 6;
+            winData += "Red poetry ribbons: 6  ";
+            // +1 for each additional ribbon
+            if (playerRibbonCards.Count > 3)
+            {
+                playerTempScore += playerRibbonCards.Count - 3;
+                winData += $" +{playerRibbonCards.Count - 3} for additional ribbons  ";
+            }
+        }
+        // Blue ribbons
+        else if (playerRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            playerTempScore += 6;
+            winData += "Blue ribbons: 6  ";
+            // +1 for each additional ribbon
+            if (playerRibbonCards.Count > 3)
+            {
+                playerTempScore += playerRibbonCards.Count - 3;
+                winData += $" +{playerRibbonCards.Count - 3} for additional ribbons  ";
+            }
+        }
         // 5 ribbon cards
-        if (playerRibbonCards.Count >= 5)
+        else if (playerRibbonCards.Count >= 5)
         {
             // 5 ribbon cards = 1 point + 1 point for each additional
             winnings = playerRibbonCards.Count - 4;
             playerTempScore += winnings;
             winData += $"Ribbon cards: {winnings}  ";
-        }
-        // 5 animal cards
-        if (playerAnimalCards.Count >= 5)
-        {
-            // 5 animal cards = 1 point + 1 point for each additional
-            winnings = playerAnimalCards.Count - 4;
-            playerTempScore += winnings;
-            winData += $"Animal cards: {winnings}  ";
         }
         // Ino-shika-cho
         bool hasBoar = playerAnimalCards.Any(c => c.AnimalName == "Boar");
@@ -1286,18 +1319,20 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             playerTempScore += 5;
             winData += "Ino-shika-cho: 5  ";
+            // +1 for each additional animal
+            if (playerAnimalCards.Count > 3)
+            {
+                playerTempScore += playerAnimalCards.Count - 3;
+                winData += $" +{playerAnimalCards.Count - 3} for additional animals  ";
+            }
         }
-        // Red poetry ribbons
-        if (playerRibbonCards.Count(c => c.RibbonName == "Red Poetry") >= 3)
+        // 5 animal cards
+        else if (playerAnimalCards.Count >= 5)
         {
-            playerTempScore += 6;
-            winData += "Red poetry ribbons: 6  ";
-        }
-        // Blue ribbons
-        if (playerRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
-        {
-            playerTempScore += 6;
-            winData += "Blue ribbons: 6  ";
+            // 5 animal cards = 1 point + 1 point for each additional
+            winnings = playerAnimalCards.Count - 4;
+            playerTempScore += winnings;
+            winData += $"Animal cards: {winnings}  ";
         }
         // Brights
         int brightCount = playerBrightCards.Count;
@@ -1335,9 +1370,17 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += 5;
             winData += "Sakura viewing: 5  ";
         }
+        // Cards of the Month
+        String currentRoundMonth = CurrentRoundSwitch(currentRound);
+        if (playerMatchedCards.Count(c => c.MonthName == currentRoundMonth) >= 4)
+        {
+            playerTempScore += 4;
+            winData += "Cards of the month: 4  ";
+        }
+        // Double points for 7 or more
         if (playerTempScore >= 7)
         {
-            winData += $"\nOver 7 points, doubled: {playerTempScore} * 2 = {playerTempScore * 2}  ";
+            winData += $"\n>=7 points, doubled: {playerTempScore} * 2 = {playerTempScore * 2}  ";
             playerTempScore *= 2; // double points for 7 or more
         }
         if (previousPlayerTempScore == 0 && playerTempScore > 0)
@@ -1426,9 +1469,6 @@ public class KoiKoiGameManager : MonoBehaviour
         SwitchPlayerTurn();
     }
 
-    private int previousOpponentTempScore = 0;
-    private int opponentTempScore = 0;
-
     int CheckYakuOpponent()
     {
         opponentTempScore = 0;
@@ -1443,21 +1483,50 @@ public class KoiKoiGameManager : MonoBehaviour
             opponentTempScore += winnings;
             winData += $"Shit cards: {winnings}  ";
         }
+        // Poetry AND Blue ribbons
+        if (opponentRibbonCards.Count(c => c.RibbonName == "Text") >= 3 &&
+            opponentRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            opponentTempScore += 12;
+            winData += "Poetry AND Blue ribbons: 12  ";
+            // +1 for each additional ribbon
+            if (opponentRibbonCards.Count > 6)
+            {
+                opponentTempScore += opponentRibbonCards.Count - 6;
+                winData += $" +{opponentRibbonCards.Count - 6} for additional ribbons  ";
+            }
+        }
+        // Red poetry ribbons
+        else if (opponentRibbonCards.Count(c => c.RibbonName == "Text") >= 3)
+        {
+            opponentTempScore += 6;
+            winData += "Red poetry ribbons: 6  ";
+            // +1 for each additional ribbon
+            if (opponentRibbonCards.Count > 3)
+            {
+                opponentTempScore += opponentRibbonCards.Count - 3;
+                winData += $" +{opponentRibbonCards.Count - 3} for additional ribbons  ";
+            }
+        }
+        // Blue ribbons
+        else if (opponentRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
+        {
+            opponentTempScore += 6;
+            winData += "Blue ribbons: 6  ";
+            // +1 for each additional ribbon
+            if (opponentRibbonCards.Count > 3)
+            {
+                opponentTempScore += opponentRibbonCards.Count - 3;
+                winData += $" +{opponentRibbonCards.Count - 3} for additional ribbons  ";
+            }
+        }
         // 5 ribbon cards
-        if (opponentRibbonCards.Count >= 5)
+        else if (opponentRibbonCards.Count >= 5)
         {
             // 5 ribbon cards = 1 point + 1 point for each additional
             winnings = opponentRibbonCards.Count - 4;
             opponentTempScore += winnings;
             winData += $"Ribbon cards: {winnings}  ";
-        }
-        // 5 animal cards
-        if (opponentAnimalCards.Count >= 5)
-        {
-            // 5 animal cards = 1 point + 1 point for each additional
-            winnings = opponentAnimalCards.Count - 4;
-            opponentTempScore += winnings;
-            winData += $"Animal cards: {winnings}  ";
         }
         // Ino-shika-cho
         bool hasBoar = opponentAnimalCards.Any(c => c.AnimalName == "Boar");
@@ -1468,18 +1537,18 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             opponentTempScore += 5;
             winData += "Ino-shika-cho: 5  ";
+            if (opponentAnimalCards.Count > 3)
+            {
+                opponentTempScore += opponentAnimalCards.Count - 3;
+                winData += $" +{opponentAnimalCards.Count - 3} for additional animals  ";
+            }
         }
-        // Red poetry ribbons
-        if (opponentRibbonCards.Count(c => c.RibbonName == "Red Poetry") >= 3)
+        else if (opponentAnimalCards.Count >= 5)
         {
-            opponentTempScore += 6;
-            winData += "Red poetry ribbons: 6  ";
-        }
-        // Blue ribbons
-        if (opponentRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
-        {
-            opponentTempScore += 6;
-            winData += "Blue ribbons: 6  ";
+            // 5 animal cards = 1 point + 1 point for each additional
+            winnings = opponentAnimalCards.Count - 4;
+            opponentTempScore += winnings;
+            winData += $"Animal cards: {winnings}  ";
         }
         // Brights
         int brightCount = opponentBrightCards.Count;
@@ -1517,9 +1586,17 @@ public class KoiKoiGameManager : MonoBehaviour
             opponentTempScore += 5;
             winData += "Sakura and Sake Cup: 5  ";
         }
+        // Cards of the month
+        String currentRoundMonth = CurrentRoundSwitch(currentRound);
+        if (opponentMatchedCards.Count(c => c.MonthName == currentRoundMonth) >= 4)
+        {
+            opponentTempScore += 4;
+            winData += "Cards of the month: 4  ";
+        }
+        // Double points for 7 or more
         if (opponentTempScore >= 7)
         {
-            winData += $"\nOver 7 points, doubled: {opponentTempScore} * 2 = {opponentTempScore * 2}  ";
+            winData += $"\n>=7 points, doubled: {opponentTempScore} * 2 = {opponentTempScore * 2}  ";
             opponentTempScore *= 2; // double points for 7 or more
         }
         if (previousOpponentTempScore == 0 && opponentTempScore > 0)
