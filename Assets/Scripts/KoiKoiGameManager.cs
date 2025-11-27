@@ -338,7 +338,7 @@ public class KoiKoiGameManager : MonoBehaviour
                 rb.isKinematic = false;
                 rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
                 rb.interpolation = RigidbodyInterpolation.Interpolate;
-                Quaternion dealRotation = Quaternion.Euler(0, 0, 0);
+                Quaternion dealRotation = Quaternion.Euler(180, 0, 0);
                 yield return StartCoroutine(MoveRigidbodyToPosition(rb, topPlayerDealPosition, dealRotation, moveDuration));
                 topPlayerDealPosition -= new Vector3(xOffset, 0f, 0f);
                 rb.position = new Vector3(rb.position.x, cardRestingHeight, rb.position.z);
@@ -434,6 +434,10 @@ public class KoiKoiGameManager : MonoBehaviour
             yield return new WaitForFixedUpdate(); // physics step
         }
         rb.isKinematic = true;
+        if (rb.position.y < cardRestingHeight)
+        {
+            rb.position = new Vector3(rb.position.x, cardRestingHeight, rb.position.z);
+        }
     }
 
     void CheckIfValidGame()
@@ -616,14 +620,24 @@ public class KoiKoiGameManager : MonoBehaviour
     void CheckHands()
     {
         bool canMatch = false;
+        List<Card> opponentHandMatches = new List<Card>();
+        List<Card> centerCardMatches = new List<Card>();
         if (timeToDraw)
         {
+            // opponentHandMatches.Add(selectedCard);
             foreach (Card centerCard in centerCards)
             {
                 if (selectedCard.MonthName == centerCard.MonthName)
                 {
-                    selectedCard.transform.Find("Particle shape").gameObject.SetActive(true);
-                    centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
+                    if (opponentTurn)
+                    {
+                        centerCardMatches.Add(centerCard);
+                    }
+                    else if (playerTurn)
+                    {
+                        selectedCard.transform.Find("Particle shape").gameObject.SetActive(true);
+                        centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
+                    }
                     canMatch = true;
                 }
             }
@@ -659,16 +673,56 @@ public class KoiKoiGameManager : MonoBehaviour
 
                     if (opponentCard.MonthName == centerCard.MonthName)
                     {
+                        opponentHandMatches.Add(opponentCard);
+                        centerCardMatches.Add(centerCard);
                         canMatch = true;
-                        opponentCard.transform.Find("Particle shape").gameObject.SetActive(true);
-                        centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
+                        // opponentCard.transform.Find("Particle shape").gameObject.SetActive(true);
+                        // centerCard.transform.Find("Particle shape").gameObject.SetActive(true);
                     }
                 }
             }
         }
-        if (!canMatch)
+        if (!canMatch && !opponentTurn)
         {
             ShowMarkers();
+        }
+        else if (!canMatch && opponentTurn)
+        {
+            // ensure selected card exists
+            if (selectedCard == null)
+                selectedCard = opponentHandCards[UnityEngine.Random.Range(0, opponentHandCards.Count)];
+
+            ShowMarkers();
+
+            // collect available marker positions
+            List<Vector3> availableMarkers = new List<Vector3>();
+            for (int i = 0; i < topRowMarkers.Length; i++)
+            {
+                if (topRowMarkers[i].activeSelf)
+                    availableMarkers.Add(topRowMarkers[i].transform.position);
+                if (bottomRowMarkers[i].activeSelf)
+                    availableMarkers.Add(bottomRowMarkers[i].transform.position);
+            }
+
+            if (availableMarkers.Count > 0)
+            {
+                // pick one and immediately place the card, enforcing correct Y height
+                Vector3 chosen = availableMarkers[UnityEngine.Random.Range(0, availableMarkers.Count)];
+                chosen = new Vector3(chosen.x, cardRestingHeight, chosen.z);
+                MoveCardToPlaceholder(chosen);
+            }
+
+            return; // prevent Match() from running
+        }
+        if (opponentTurn && canMatch)
+        {
+            if (!timeToDraw)
+            {
+                selectedCard = opponentHandMatches[UnityEngine.Random.Range(0, opponentHandMatches.Count)];
+            }
+            List<Card> possibleCenterMatches = centerCards.Where(c => c.MonthName == selectedCard.MonthName).ToList();
+            Card centerMatch = possibleCenterMatches[UnityEngine.Random.Range(0, possibleCenterMatches.Count)];
+            Match(centerMatch);
         }
     }
 
@@ -767,6 +821,11 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             drawText.gameObject.SetActive(true);
             timeToDraw = true;
+            // Auto-draw for opponent so their turn completes without player input
+            if (opponentTurn)
+            {
+                DrawFromDeck();
+            }
         }
         HideMarkers();
     }
@@ -792,6 +851,25 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             opponentHandCards.Remove(selectedCard);
         }
+
+        // Repopulate grid arrays based on where the card was placed
+        for (int i = 0; i < topRowMarkers.Length; i++)
+        {
+            Vector3 tm = topRowMarkers[i].transform.position;
+            Vector3 bm = bottomRowMarkers[i].transform.position;
+
+            // Match by x/z (ignore y)
+            if (Mathf.Approximately(position.x, tm.x) && Mathf.Approximately(position.z, tm.z))
+            {
+                topRowCards[i] = selectedCard.gameObject;
+                break;
+            }
+            if (Mathf.Approximately(position.x, bm.x) && Mathf.Approximately(position.z, bm.z))
+            {
+                bottomRowCards[i] = selectedCard.gameObject;
+                break;
+            }
+        }
         DeactivateParticlesOnCards();
         HideMarkers();
         selectedCard = null;
@@ -806,8 +884,16 @@ public class KoiKoiGameManager : MonoBehaviour
         }
         else
         {
-            drawText.gameObject.SetActive(true);
-            timeToDraw = true;
+            if (playerTurn)
+            {
+                drawText.gameObject.SetActive(true);
+                timeToDraw = true;    
+            }
+            else if (opponentTurn)
+            {
+                timeToDraw = true;
+                DrawFromDeck();
+            }
         }
     }
 
@@ -865,6 +951,10 @@ public class KoiKoiGameManager : MonoBehaviour
 
     public void ShowMarkers()
     {
+        if (opponentTurn && !timeToDraw)
+        {
+            selectedCard = opponentHandCards[UnityEngine.Random.Range(0, opponentHandCards.Count)];
+        }
         bool hadSpaceInCenter = false;
         // show inside markers first
         for (int i = 2; i < topRowCards.Length - 2; i++)
@@ -903,6 +993,10 @@ public class KoiKoiGameManager : MonoBehaviour
                     bottomRowMarkers[i].SetActive(true);
                 }
             }
+        }
+        if (opponentTurn)
+        {
+            
         }
     }
 
