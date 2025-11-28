@@ -1,4 +1,5 @@
 using UnityEngine;
+using GameData;
 
 #if UNITY_EDITOR
 using System;
@@ -12,7 +13,7 @@ public class CardData : ScriptableObject {
     #region Serialized Fields (Unity Inspector)
     [Header("Main Properties")]
     [SerializeField] private Card.RankType rank;
-    [SerializeField] private Card.MonthType month;
+    [SerializeField] private MonthType month;
     
     [Space]
     [Header("Secondary Properties")]
@@ -21,7 +22,7 @@ public class CardData : ScriptableObject {
     [SerializeField] private Card.RibbonType ribbon;
     
     public Card.RankType Rank => rank;
-    public Card.MonthType Month => month;
+    public MonthType Month => month;
     public Card.BrightType Bright => bright;
     public Card.AnimalType Animal => animal;
     public Card.RibbonType Ribbon => ribbon;
@@ -81,7 +82,7 @@ public class CardDataEditor : Editor {
 
 
         rank.enumValueIndex = (int)(Card.RankType)EditorGUILayout.EnumPopup("Rank", (Card.RankType)rank.enumValueIndex);
-        month.enumValueIndex = (int)(Card.MonthType)EditorGUILayout.EnumPopup("Month", (Card.MonthType)month.enumValueIndex);
+        month.enumValueIndex = (int)(MonthType)EditorGUILayout.EnumPopup("Month", (MonthType)month.enumValueIndex);
         
         cardType = (CardType)EditorGUILayout.EnumPopup("Card Type", cardType);
 

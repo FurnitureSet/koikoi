@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Linq;
 using System;
 using TMPro;
+using GameData;
 
 public class KoiKoiGameManager : MonoBehaviour
 {
@@ -21,45 +22,77 @@ public class KoiKoiGameManager : MonoBehaviour
     private float xCenterStartPos = 0.045f;
     private float xOffset = 0.03f;
     private float cardRestingHeight = 0.7055f;
+    [Space]
+    
+    [Header("Debug Viewing")]
     public Card selectedCard;
+    [Space]
+    
+    [Header("Card Lists Board")]
     public List<Card> playerHandCards = new List<Card>();
     public List<Card> centerCards = new List<Card>();
     public List<Card> opponentHandCards = new List<Card>();
     public List<Card> deckCards = new List<Card>();
+    [Space]
+    
+    [Header("Debug View Flags")]
     public bool playerTurn = false;
     public bool opponentTurn = false;
     public bool timeToDraw = false;
+    [Space]
+    
+    [Header("Debug View Matched Cards")]
     public List<Card> playerMatchedCards = new List<Card>();
     public List<Card> opponentMatchedCards = new List<Card>();
+    [Space]
+    
+    [Header("Row Markers")]
     public GameObject[] topRowMarkers = new GameObject[8];
     public GameObject[] bottomRowMarkers = new GameObject[8];
     public GameObject[] topRowCards = new GameObject[8];
     public GameObject[] bottomRowCards = new GameObject[8];
+    [Space]
+    
+    [Header("Debug View Card Lists")]
     private List<Card> tempMatchedCards = new List<Card>();
+    [Space]
+    
+    /*
     [SerializeField] private List<Card> playerBrightCards = new List<Card>();
-    [SerializeField] private List<Card> opponentBrightCards = new List<Card>();
     [SerializeField] private List<Card> playerAnimalCards = new List<Card>();
-    [SerializeField] private List<Card> opponentAnimalCards = new List<Card>();
     [SerializeField] private List<Card> playerRibbonCards = new List<Card>();
+    [SerializeField] private List<Card> playerShitCards = new List<Card>();
+    [Space]
+    
+    [SerializeField] private List<Card> opponentBrightCards = new List<Card>();
+    [SerializeField] private List<Card> opponentAnimalCards = new List<Card>();
     [SerializeField] private List<Card> opponentRibbonCards = new List<Card>();
-    private List<Card> playerShitCards = new List<Card>();
-    private List<Card> opponentShitCards = new List<Card>();
+    [SerializeField] private List<Card> opponentShitCards = new List<Card>();
+    [Space]
+    */
 
-    private Vector3 playerShitCardsPosition = new Vector3(-0.215f, 0.7055f, -0.21f);
-    private Vector3 playerRibbonCardsPosition = new Vector3(-0.215f, 0.7055f, -0.17f);
-    private Vector3 playerAnimalCardsPosition = new Vector3(-0.215f, 0.7055f, -0.13f);
-    private Vector3 playerBrightCardsPosition = new Vector3(-0.215f, 0.7055f, -0.09f);
+    [Header("Local Player Card Positions")]
+    [SerializeField] private Transform playerShitCardsPosition;
+    [SerializeField] private Transform playerRibbonCardsPosition;
+    [SerializeField] private Transform playerAnimalCardsPosition;
+    [SerializeField] private Transform playerBrightCardsPosition;
+    [Space]
 
-    private Vector3 opponentShitCardsPosition = new Vector3(0.215f, 0.7055f, 0.21f);
-    private Vector3 opponentRibbonCardsPosition = new Vector3(0.215f, 0.7055f, 0.17f);
-    private Vector3 opponentAnimalCardsPosition = new Vector3(0.215f, 0.7055f, 0.13f);
-    private Vector3 opponentBrightCardsPosition = new Vector3(0.215f, 0.7055f, 0.09f);
+    [Header("Remote Player Card Positions")]
+    [SerializeField] private Transform opponentShitCardsPosition;
+    [SerializeField] private Transform opponentRibbonCardsPosition;
+    [SerializeField] private Transform opponentAnimalCardsPosition;
+    [SerializeField] private Transform opponentBrightCardsPosition;
+    [Space]
+    
+    [Header("View Matches Buttons")]
     [SerializeField] private GameObject viewMatchesButton;
     [SerializeField] private GameObject viewOpponentMatchesButton;
+    
     private bool gameOver = false;
     private int playerScore = 0;
     private int opponentScore = 0;
-    private int currentRound = 0;
+    private MonthType currentRound = 0;
 
     private CameraController cameraController;
     [SerializeField] private GameObject newGameButton;
@@ -72,11 +105,15 @@ public class KoiKoiGameManager : MonoBehaviour
     private bool playerKoiKoi = false;
     private bool opponentKoiKoi = false;
 
+    /*
     private int previousPlayerTempScore = 0;
     private int playerTempScore = 0;
     private int previousOpponentTempScore = 0;
     private int opponentTempScore = 0;
+    */
 
+    #region UI References
+    [Header("UI References")]
     [SerializeField] private TMP_Text playerWinText;
     [SerializeField] private TMP_Text opponentWinText;
     [SerializeField] private TMP_Text tempPlayerPointsText;
@@ -89,42 +126,57 @@ public class KoiKoiGameManager : MonoBehaviour
     [SerializeField] private TMP_Text gameOverText;
     [SerializeField] private TMP_Text playerWinDataText;
     [SerializeField] private TMP_Text opponentWinDataText;
+    #endregion
 
-    IEnumerator Start()
-    {
+    private Player player1 = new Player("Player1");
+    private Player player2 = new Player("Player2");
+    private Player currentPlayer;
+
+    private bool CanStartNextRound => currentRound != MonthType.December;
+
+    void Start() {
+        currentPlayer = player1;
+        StartCoroutine(GameStart());
+    }
+
+    // Called exclusively when the entire game starts, once ever
+    private IEnumerator GameStart() {
         playerTurn = true;
         cameraController = FindFirstObjectByType<CameraController>();
         LoadCards();
         CreateDeckOnScreen();
-        currentRoundText.text = CurrentRoundSwitch(currentRound);
+        currentRoundText.text = currentRound.ToString(); //CurrentRoundSwitch(currentRound);
         yield return StartCoroutine(DealCardsCoroutine());
         CheckIfValidGame();
         CheckAndHandleThreeOfAKindOnBoard();
         StartCoroutine(GameLoop());
     }
 
+    // Called for every round after the first round
     public void NewGame()
     {
         
         newGameButton.SetActive(false);
         StopAllCoroutines();
-        if (currentRound < 11)
+        if (CanStartNextRound)
         {
             currentRound++;
         }
         else
         {
-            currentRound = 0;
+            //currentRound = 0;
             playerScore = 0;
             playerScoreText.text = "Player Score: " + playerScore.ToString();
             opponentScore = 0;
             opponentScoreText.text = "Opponent Score: " + opponentScore.ToString();
-        }        
-        currentRoundText.text = CurrentRoundSwitch(currentRound);
+        }
+
+        currentRoundText.text = currentRound.ToString(); //CurrentRoundSwitch(currentRound);
         cameraController.ResetView();
         StartCoroutine(NewGameCoroutine());
     }
 
+    /*
     String CurrentRoundSwitch(int round)
     {
         switch (round)
@@ -157,6 +209,7 @@ public class KoiKoiGameManager : MonoBehaviour
                 return "Unknown";
         }
     }
+    */
 
     public IEnumerator NewGameCoroutine()
     {
@@ -178,16 +231,25 @@ public class KoiKoiGameManager : MonoBehaviour
             stackAnchor = transform;
         }
 
+        foreach (CardData cardData in cardDataArray) {
+            Card card = Instantiate(cardPrefab, stackAnchor.position, stackAnchor.rotation) as Card;
+            deck.AddCard(card);
+            deckCards.Add(card);
+            card.LoadCardData(cardData);
+            card.OnCardSelect += OnCardSelected;
+        }
+        
         for (int i = 0; i < 48; i++)
         {
             Card card = Instantiate(cardPrefab, stackAnchor.position, stackAnchor.rotation);
             deck.AddCard(card);
             deckCards.Add(card);
             card.LoadCardData(cardDataArray[i]);
-            card.gameObject.name = card.MonthName + card.AnimalName + card.BrightName + card.RibbonName;
+            card.OnCardSelect += OnCardSelected;
         }
     }
 
+    #region Card Movement
     public void DestroyEverything()
     {
         if (deck != null)
@@ -208,14 +270,14 @@ public class KoiKoiGameManager : MonoBehaviour
         playerMatchedCards.Clear();
         opponentMatchedCards.Clear();
         tempMatchedCards.Clear();
-        playerBrightCards.Clear();
-        opponentBrightCards.Clear();
-        playerAnimalCards.Clear();
-        opponentAnimalCards.Clear();
-        playerRibbonCards.Clear();
-        opponentRibbonCards.Clear();
-        playerShitCards.Clear();
-        opponentShitCards.Clear();
+        //playerBrightCards.Clear();
+        //opponentBrightCards.Clear();
+        //playerAnimalCards.Clear();
+        //opponentAnimalCards.Clear();
+        //playerRibbonCards.Clear();
+        //opponentRibbonCards.Clear();
+        //playerShitCards.Clear();
+        //opponentShitCards.Clear();
 
         selectedCard = null;
         timeToDraw = false;
@@ -224,10 +286,12 @@ public class KoiKoiGameManager : MonoBehaviour
         playerWin = false;
         opponentWin = false;
 
+        /*
         previousPlayerTempScore = 0;
         playerTempScore = 0;
         previousOpponentTempScore = 0;
         opponentTempScore = 0;
+        */
 
         foreach (Card card in FindObjectsByType<Card>(FindObjectsSortMode.None))
         {
@@ -235,21 +299,57 @@ public class KoiKoiGameManager : MonoBehaviour
             Destroy(card.gameObject);
         }
 
-        playerShitCardsPosition = new Vector3(-0.215f, 0.7055f, -0.21f);
-        playerRibbonCardsPosition = new Vector3(-0.215f, 0.7055f, -0.17f);
-        playerAnimalCardsPosition = new Vector3(-0.215f, 0.7055f, -0.13f);
-        playerBrightCardsPosition = new Vector3(-0.215f, 0.7055f, -0.09f);
+        playerShitCardsPosition.position = new Vector3(-0.215f, 0.7055f, -0.21f);
+        playerRibbonCardsPosition.position = new Vector3(-0.215f, 0.7055f, -0.17f);
+        playerAnimalCardsPosition.position = new Vector3(-0.215f, 0.7055f, -0.13f);
+        playerBrightCardsPosition.position = new Vector3(-0.215f, 0.7055f, -0.09f);
 
-        opponentShitCardsPosition = new Vector3(0.215f, 0.7055f, 0.21f);
-        opponentRibbonCardsPosition = new Vector3(0.215f, 0.7055f, 0.17f);
-        opponentAnimalCardsPosition = new Vector3(0.215f, 0.7055f, 0.13f);
-        opponentBrightCardsPosition = new Vector3(0.215f, 0.7055f, 0.09f);
+        opponentShitCardsPosition.position = new Vector3(0.215f, 0.7055f, 0.21f);
+        opponentRibbonCardsPosition.position = new Vector3(0.215f, 0.7055f, 0.17f);
+        opponentAnimalCardsPosition.position = new Vector3(0.215f, 0.7055f, 0.13f);
+        opponentBrightCardsPosition.position = new Vector3(0.215f, 0.7055f, 0.09f);
 
         // Reset UI
         viewMatchesButton.SetActive(false);
         viewOpponentMatchesButton.SetActive(false);
         gameOverText.gameObject.SetActive(false);
         gameOver = false;
+    }
+
+    void OnCardSelected(Card card) {
+        // select player card
+        if (playerTurn && playerHandCards.Contains(card) && !timeToDraw)
+        {
+            SetCardSelectedBool(card);
+        }
+        // select opponent card
+        if (opponentTurn && opponentHandCards.Contains(card) && !timeToDraw)
+        {
+            SetCardSelectedBool(card);
+        }
+        // match card
+        if (selectedCard != null && card.Month == selectedCard.Month && card != selectedCard && !timeToDraw)
+        {
+            // prevent matching opponent's card during player's turn and vice versa
+            // also the deck?? Wow.
+            if (((playerTurn && !opponentHandCards.Contains(card)) ||
+                 (opponentTurn && !playerHandCards.Contains(card))) &&
+                !deckCards.Contains(card))
+            {
+                Match(card);
+            }
+        }
+        // draw from deck
+        else if (timeToDraw && deckCards.Contains(card) && selectedCard == null)
+        {
+            DrawFromDeck();
+        }
+        // match from deck to center
+        else if (timeToDraw && card != selectedCard && centerCards.Contains(card) 
+            && card.Month == selectedCard.Month)
+        {
+            Match(card);
+        }
     }
 
     public void MoveCards()
@@ -435,7 +535,9 @@ public class KoiKoiGameManager : MonoBehaviour
         }
         rb.isKinematic = true;
     }
+    #endregion
 
+    // Called exclusively on start
     void CheckIfValidGame()
     {
         // Four of a kind or four pairs on the board, invalid
@@ -453,7 +555,7 @@ public class KoiKoiGameManager : MonoBehaviour
         // Four of a kind or four pairs in hand, instant win 6 points
         bool playerInstantWin = CheckLucky(playerHandCards);
         bool opponentInstantWin = CheckLucky(opponentHandCards);
-        if (playerInstantWin ^ opponentInstantWin)
+        if (playerInstantWin != opponentInstantWin)
         {
             // exactly one player has an instant win
             if (playerInstantWin)
@@ -473,6 +575,8 @@ public class KoiKoiGameManager : MonoBehaviour
         }
     }
 
+    // Called exclusively on start
+    /*
     bool CheckLucky(List<Card> hand)
     {
         Dictionary<string, int> monthCounts = new Dictionary<string, int>();
@@ -494,9 +598,41 @@ public class KoiKoiGameManager : MonoBehaviour
 
         return fourOfAKind || fourPairs;
     }
+    */
 
+    bool CheckLucky(List<Card> hand) {
+        int[] counts = new int[12];
+
+        foreach (Card card in hand) {
+            int i = (int)card.Month;
+            counts[i]++;
+            if (counts[i] == 4) return true;
+        }
+
+        int pairs = 0;
+        foreach (int c in counts) {
+            if (c == 2) pairs++;
+            if (pairs >= 4) return true;
+        }
+        return pairs >= 4;
+    }
+
+    MonthType CheckThreeOfAKind() {
+        int[] counts = new int[12];
+
+        foreach (Card card in centerCards) {
+            int i = (int)card.Month;
+            counts[i]++;
+            if (counts[i] == 3) return card.Month;
+        }
+
+        return MonthType.Invalid;
+    }
+
+    /*
     String CheckThreeOfAKind()
     {
+
         Dictionary<string, int> monthCounts = new Dictionary<string, int>();
         String monthWithThreeOfAKind = "";
 
@@ -522,7 +658,24 @@ public class KoiKoiGameManager : MonoBehaviour
         }
         return monthWithThreeOfAKind;
     }
+    */
 
+    void CheckThreeOfAKindOnBoard() {
+        int[] counts = new int[12];
+
+        foreach (Card card in centerCards) {
+            int i = (int)card.Month;
+            counts[i]++;
+        }
+
+        foreach (int c in counts) {
+            if (c == 3) {
+                StartCoroutine(MatchThreeOfAKind((MonthType)c));
+            }
+        }
+    }
+
+    /*
     void CheckAndHandleThreeOfAKindOnBoard()
     {
         Dictionary<string, int> monthCounts = new Dictionary<string, int>();
@@ -550,15 +703,16 @@ public class KoiKoiGameManager : MonoBehaviour
             }
         }
     }
+    */
 
-    IEnumerator MatchThreeOfAKind(string month)
+    IEnumerator MatchThreeOfAKind(MonthType month)
     {
         // locate first card of that month in center cards
-        Card firstCard = centerCards.Find(card => card.MonthName == month);
+        Card firstCard = centerCards.Find(card => card.Month == month);
         // locate second card of that month in center cards
-        Card secondCard = centerCards.Find(card => card.MonthName == month && card != firstCard);
+        Card secondCard = centerCards.Find(card => card.Month == month && card != firstCard);
         // locate third card of that month in center cards
-        Card thirdCard = centerCards.Find(card => card.MonthName == month && card != firstCard && card != secondCard);
+        Card thirdCard = centerCards.Find(card => card.Month == month && card != firstCard && card != secondCard);
         if (firstCard != null && secondCard != null && thirdCard != null)
         {
             yield return StartCoroutine(MoveRigidbodyToPosition(secondCard.GetComponent<Rigidbody>(),
@@ -593,7 +747,7 @@ public class KoiKoiGameManager : MonoBehaviour
 
     void MatchThreeOfAKindFromDraw(Card drawnCard)
     {
-        StartCoroutine(MatchThreeOfAKind(drawnCard.MonthName));
+        StartCoroutine(MatchThreeOfAKind(drawnCard.Month));
     }
 
     private void RemoveFromCenterGrid(Card card)
@@ -707,11 +861,11 @@ public class KoiKoiGameManager : MonoBehaviour
         if (playerTurn)
         {
             // Three of a kind on board, claim all cards of that month
-            if (CheckThreeOfAKind() == selectedCard.MonthName)
+            if (CheckThreeOfAKind() == selectedCard.Month)
             {
                 foreach (Card card in centerCards)
                 {
-                    if (card.MonthName == selectedCard.MonthName)
+                    if (card.Month == selectedCard.Month)
                     {
                         playerMatchedCards.Add(card);
                         tempMatchedCards.Add(card);
@@ -730,11 +884,11 @@ public class KoiKoiGameManager : MonoBehaviour
         if (opponentTurn)
         {
             // Three of a kind on board, claim all cards of that month
-            if (CheckThreeOfAKind() == selectedCard.MonthName)
+            if (CheckThreeOfAKind() == selectedCard.Month)
             {
                 foreach (Card card in centerCards)
                 {
-                    if (card.MonthName == selectedCard.MonthName)
+                    if (card.Month == selectedCard.Month)
                     {
                         opponentMatchedCards.Add(card);
                         tempMatchedCards.Add(card);
@@ -758,7 +912,7 @@ public class KoiKoiGameManager : MonoBehaviour
         if (timeToDraw)
         {
             yield return new WaitForSeconds(0.8f); // short pause before claiming matches
-            ClaimMatches();
+            ClaimMatches(currentPlayer);
             RestructurePlayerHand();
             RestructureOpponentHand();
             timeToDraw = false;
@@ -918,47 +1072,72 @@ public class KoiKoiGameManager : MonoBehaviour
         }
     }
 
-    void ClaimMatches()
+    void ClaimMatches(Player player)
     {
         foreach (Card card in tempMatchedCards)
         {
             centerCards.Remove(card);
-            if (card.IsBright)
+            Transform positionTransform = card.CardTypeData switch {
+                Card.CardType.Bright => playerTurn ? playerBrightCardsPosition : opponentBrightCardsPosition,
+                Card.CardType.Ribbon => playerTurn ? playerRibbonCardsPosition : opponentRibbonCardsPosition,
+                Card.CardType.Animal => playerTurn ? playerAnimalCardsPosition : opponentAnimalCardsPosition,
+                _ => playerTurn ? playerShitCardsPosition : opponentShitCardsPosition
+            };
+            
+            // Replace with switch for player
+            /*
+            List<Card> cardsList = card.CardTypeData switch {
+                Card.CardType.Bright => playerTurn ? playerBrightCards : opponentBrightCards,
+                Card.CardType.Ribbon => playerTurn ? playerRibbonCards : opponentRibbonCards,
+                Card.CardType.Animal => playerTurn ? playerAnimalCards : opponentAnimalCards,
+                _ => playerTurn ? playerShitCards : opponentShitCards
+            };
+            */
+            
+
+            // Replace with Player.AddCard
+            player.AddCard(card);
+            StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
+                positionTransform.position, card.transform.rotation, 0.1f)
+            );
+            
+            positionTransform.Translate(new Vector3(0.04f, 0, 0));
+            
+            
+            /*if (card.IsBright)
             {
                 if (playerTurn)
                 {
                     playerBrightCards.Add(card);
                     StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
-                    new Vector3(playerBrightCardsPosition.x,
-                    playerBrightCardsPosition.y,
-                    playerBrightCardsPosition.z),
-                    card.transform.rotation,
-                    0.1f));
+                        playerBrightCardsPosition.position,
+                        card.transform.rotation,
+                        0.1f)
+                    );
                     if (playerBrightCards.Count % 3 == 0)
                     {
-                        playerBrightCardsPosition.x += 0.04f;
+                        playerBrightCardsPosition.Translate(new Vector3(0.04f, 0, 0));
                     }
                     else
                     {
-                        playerBrightCardsPosition.x += 0.03f;
+                        playerBrightCardsPosition.Translate(new Vector3(0.03f, 0, 0));
                     }
                 }
                 else if (opponentTurn)
                 {
                     opponentBrightCards.Add(card);
                     StartCoroutine(MoveRigidbodyToPosition(card.GetComponent<Rigidbody>(),
-                    new Vector3(opponentBrightCardsPosition.x,
-                    opponentBrightCardsPosition.y,
-                    opponentBrightCardsPosition.z),
-                    card.transform.rotation,
-                    0.1f));
-                    if (opponentBrightCards.Count % 3 == 0)
+                        opponentBrightCardsPosition.position,
+                        card.transform.rotation,
+                        0.1f)
+                    );
+                    if (playerBrightCards.Count % 3 == 0)
                     {
-                        opponentBrightCardsPosition.x -= 0.04f;
+                        playerBrightCardsPosition.Translate(new Vector3(0.04f, 0, 0));
                     }
                     else
                     {
-                        opponentBrightCardsPosition.x -= 0.03f;
+                        playerBrightCardsPosition.Translate(new Vector3(0.03f, 0, 0));
                     }
                 }
 
@@ -1079,7 +1258,8 @@ public class KoiKoiGameManager : MonoBehaviour
                         opponentShitCardsPosition.x -= 0.03f;
                     }
                 }
-            }
+            }*/
+            
             // clear the indices for the markers
             for (int i = 0; i < topRowCards.Length; i++)
             {
@@ -1093,15 +1273,21 @@ public class KoiKoiGameManager : MonoBehaviour
                 }
             }
         }
+        
+        // Enables the match view buttons for each player
         tempMatchedCards.Clear();
-        if (playerBrightCards.Count > 0 || playerAnimalCards.Count > 0 || playerRibbonCards.Count > 0 || playerShitCards.Count > 0)
-        {
-            viewMatchesButton.SetActive(true);
+        if (player1.CountTotalCards > 0) viewMatchesButton.SetActive(true);
+        if (player2.CountTotalCards > 0) viewOpponentMatchesButton.SetActive(true);
+        
+        // Check koikoi conditions
+        if (koikoi) CheckYakuKoiKoi(player);
+        else {
+            if (CheckYaku(player) > 0)
+                ShowPlayerWinScreen();
+            else
+                SwitchPlayerTurn();
         }
-        if (opponentBrightCards.Count > 0 || opponentAnimalCards.Count > 0 || opponentRibbonCards.Count > 0 || opponentShitCards.Count > 0)
-        {
-            viewOpponentMatchesButton.SetActive(true);
-        }
+        /*
         if (playerTurn)
         {
             Debug.Log("Player turn, figuring out what to do");
@@ -1152,10 +1338,13 @@ public class KoiKoiGameManager : MonoBehaviour
                 }
             }
         }
+        */
     }
 
     void SwitchPlayerTurn()
     {
+        currentPlayer = currentPlayer == player1 ? player2 : player1;
+        /*
         playerTurn = !playerTurn;
         opponentTurn = !opponentTurn;
         if (playerTurn)
@@ -1166,6 +1355,7 @@ public class KoiKoiGameManager : MonoBehaviour
         {
             Debug.Log("OPPONENT TURN");
         }
+        */
     }
 
     void RestructurePlayerHand()
@@ -1251,6 +1441,89 @@ public class KoiKoiGameManager : MonoBehaviour
         yield return new WaitUntil(() => !opponentTurn || gameOver);
     }
 
+
+    #region Scoring Related Methods
+    int CheckYaku(Player player) {
+        ScoreData currentScore = player.CurrentScoreData;
+
+        // Calculate score for plain cards >= 10
+        currentScore.Plain += Mathf.Max(player.CountPlainCards - 9, 0);
+
+        #region Ribbon Card Checks
+        int count_ribbonText = player.CountCardsByLambda(Player.ListType.Ribbon, c => c.RibbonName == "Text");
+        int count_ribbonBlue = player.CountCardsByLambda(Player.ListType.Ribbon, c => c.RibbonName == "Blue");
+
+        // Poetry
+        if (count_ribbonText >= 3 && count_ribbonBlue >= 3)
+            currentScore.Poetry = 12 + Mathf.Max(player.CountRibbonCards - 6, 0);
+        
+        // Text
+        else if (count_ribbonText >= 3)
+            currentScore.Text = 6 + Mathf.Max(player.CountRibbonCards - 3, 0);
+        
+        // Blue
+        else if (count_ribbonBlue >= 3)
+            currentScore.Blue = 6 + Mathf.Max(player.CountRibbonCards - 3, 0);
+
+        // Ribbon
+        else currentScore.Ribbon = Mathf.Max(player.CountRibbonCards - 4, 0);
+        #endregion
+        #region Animal Card Checks
+        if (player.AnyCardsByLambda(Player.ListType.Animal, c => c.RibbonName == "Boar") &&
+            player.AnyCardsByLambda(Player.ListType.Animal, c => c.RibbonName == "Deer") &&
+            player.AnyCardsByLambda(Player.ListType.Animal, c => c.RibbonName == "Butterfly"))
+            currentScore.InoShikaCho = 5 + Mathf.Max(player.CountAnimalCards - 3, 0);
+        
+        else currentScore.Animal = Mathf.Max(player.CountAnimalCards - 4, 0);
+        #endregion
+        #region Bright Card Checks
+        bool bright_rainMan = player.AnyCardsByLambda(Player.ListType.Bright, c => c.BrightName == "RainMan");
+        int bright_count = player.CountBrightCards;
+        if (bright_count >= 5) currentScore.Brights = 15;
+        else if (bright_count == 4) currentScore.Brights = bright_rainMan ? 8 : 10;
+        else if (bright_count == 3 && !bright_rainMan) currentScore.Brights = 6;
+        
+        bool hasSakura = player.AnyCardsByLambda(Player.ListType.Bright, c => c.BrightName == "Sakura");
+        bool hasMoon = player.AnyCardsByLambda(Player.ListType.Bright, c => c.BrightName == "Moon");
+        bool hasSake = player.AnyCardsByLambda(Player.ListType.Bright, c => c.BrightName == "Sake");
+        if (hasSakura) {
+            if (hasMoon) currentScore.Tsukimi = 5;
+            if (hasSake) currentScore.Hanami = 5;
+        }
+        #endregion
+        #region Special Card Checks
+        // Current month checks
+        if (player.CountCardsByLambda(Player.ListType.Hand, c => c.Month == currentRound) >= 4)
+            currentScore.Month = 4;
+
+        // Over 7 score check
+        currentScore.Over7 = currentScore.Total > 7;
+        #endregion
+
+        return currentScore.Total;
+    }
+
+    int CheckYakuKoiKoi(Player player) {
+        int score = CheckYaku(player);
+    }
+
+    void ShowWinScreen(Player player) { }
+
+    void DisableWinScreen() { }
+
+    public void OnWin() { }
+
+    public void OnKoiKoi() { }
+    #endregion
+
+
+    #region Local Player Methods
+
+    /*
+    /// <summary>
+    /// Checks the player's hand for match conditions
+    /// </summary>
+    /// <returns>Score earned in hand</returns>
     int CheckYakuPlayer()
     {
         String winData = "";
@@ -1265,6 +1538,7 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += winnings;
             winData += $"Shit cards: {winnings}  ";
         }
+        #region Ribbon Card Checks
         // Poetry AND Blue ribbons
         if (playerRibbonCards.Count(c => c.RibbonName == "Text") >= 3 && 
             playerRibbonCards.Count(c => c.RibbonName == "Blue") >= 3)
@@ -1310,6 +1584,8 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += winnings;
             winData += $"Ribbon cards: {winnings}  ";
         }
+        #endregion
+        #region Animal Card Checks
         // Ino-shika-cho
         bool hasBoar = playerAnimalCards.Any(c => c.AnimalName == "Boar");
         bool hasDeer = playerAnimalCards.Any(c => c.AnimalName == "Deer");
@@ -1335,6 +1611,8 @@ public class KoiKoiGameManager : MonoBehaviour
             winData += $"Animal cards: {winnings}  ";
         }
         // Brights
+        #endregion
+        #region Bright Card Checks
         int brightCount = playerBrightCards.Count;
         if (brightCount >= 5)
         {
@@ -1356,7 +1634,8 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += 6;
             winData += "Three brights (no RainMan): 6  ";
         }
-        // Flower/Moon viewing
+        #endregion
+        #region Flower/Moon viewing
         bool hasSakura = playerBrightCards.Any(c => c.BrightName == "Sakura");
         bool hasMoon = playerBrightCards.Any(c => c.BrightName == "Moon");
         bool hasSakeCup = playerAnimalCards.Any(c => c.AnimalName == "Sake");
@@ -1370,9 +1649,10 @@ public class KoiKoiGameManager : MonoBehaviour
             playerTempScore += 5;
             winData += "Sakura viewing: 5  ";
         }
+        #endregion
         // Cards of the Month
-        String currentRoundMonth = CurrentRoundSwitch(currentRound);
-        if (playerMatchedCards.Count(c => c.MonthName == currentRoundMonth) >= 4)
+        //String currentRoundMonth = currentRound.ToString(); //CurrentRoundSwitch(currentRound);
+        if (playerMatchedCards.Count(c => c.Month == currentRound) >= 4)
         {
             playerTempScore += 4;
             winData += "Cards of the month: 4  ";
@@ -1391,18 +1671,20 @@ public class KoiKoiGameManager : MonoBehaviour
         playerWinDataText.text = winData;
         return playerTempScore;
     }
+    */
 
+    // Called from outside when the player clicks a button
     void CheckYakuPlayerKoiKoi()
     {
         Debug.Log("Entered CheckYakuPlayerKoiKoi");
-        int score = CheckYakuPlayer();
+        int score = CheckYaku(player1);
         if (score > previousPlayerTempScore)
         {
             Debug.Log("Player has achieved a new Yaku with a score of: " + score);
             previousPlayerTempScore = score;
             playerTempScore = score * 2; // double points for Koi-Koi
             tempPlayerPointsText.text = "Winning points: " + playerTempScore.ToString();
-            playerWinDataText.text += "\nKoi-Koi! Points doubled to: " + playerTempScore.ToString();
+            //playerWinDataText.text += "\nKoi-Koi! Points doubled to: " + playerTempScore.ToString();
             ShowPlayerWinScreen();
         }
         else
@@ -1447,7 +1729,7 @@ public class KoiKoiGameManager : MonoBehaviour
         playerScore += playerTempScore;
         playerScoreText.text = "Player Score: " + playerScore.ToString();
         DisablePlayerWinScreen();
-        if (currentRound < 11)
+        if (CanStartNextRound)
         {
             NewGame();
         }
@@ -1468,7 +1750,11 @@ public class KoiKoiGameManager : MonoBehaviour
         tempPlayerPointsText.text = "Winning points: " + playerTempScore.ToString();
         SwitchPlayerTurn();
     }
+    
+    #endregion
 
+    #region Remote Player Methods
+    /*
     int CheckYakuOpponent()
     {
         opponentTempScore = 0;
@@ -1587,8 +1873,8 @@ public class KoiKoiGameManager : MonoBehaviour
             winData += "Sakura and Sake Cup: 5  ";
         }
         // Cards of the month
-        String currentRoundMonth = CurrentRoundSwitch(currentRound);
-        if (opponentMatchedCards.Count(c => c.MonthName == currentRoundMonth) >= 4)
+        //String currentRoundMonth = CurrentRoundSwitch(currentRound);
+        if (opponentMatchedCards.Count(c => c.Month == currentRound) >= 4)
         {
             opponentTempScore += 4;
             winData += "Cards of the month: 4  ";
@@ -1663,7 +1949,7 @@ public class KoiKoiGameManager : MonoBehaviour
         opponentScore += opponentTempScore;
         opponentScoreText.text = "Opponent Score: " + opponentScore.ToString();
         DisableOpponentWinScreen();
-        if (currentRound < 11)
+        if (CanStartNextRound)
         {
             NewGame();
         }
@@ -1684,11 +1970,13 @@ public class KoiKoiGameManager : MonoBehaviour
         tempOpponentPointsText.text = "Winning points: " + opponentTempScore.ToString();
         SwitchPlayerTurn();
     }
+    */
+    #endregion
     
     void ExhuastiveDraw()
     {
         Debug.Log("Exhaustive Draw! No more cards in hands.");
-        if (currentRound < 11)
+        if (CanStartNextRound)
         {
             NewGame();
         }

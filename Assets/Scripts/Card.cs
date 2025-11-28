@@ -1,20 +1,16 @@
 using System;
 using UnityEngine;
+using GameData;
 
 [RequireComponent(typeof(CardRenderer))]
 public class Card : MonoBehaviour {
-
-    public bool isSelected = false;
-    public KoiKoiGameManager gameManager;
+    
+    
 
     #region Data Definitions
 
     public enum RankType {
         First, Second, Third, Fourth
-    }
-    public enum MonthType {
-        January, February, March, April, May, June, July,
-        August, September, October, November, December
     }
     public enum BrightType {
         None, Plain, Moon, Sakura, RainMan
@@ -37,66 +33,120 @@ public class Card : MonoBehaviour {
     [Tooltip("Mesh renderer of the card")]
     [SerializeField] private MeshRenderer meshRenderer;
     #endregion
+    #region Public Members (Inspector Hidden)
+    [HideInInspector] public event CardSelectDelegate OnCardSelect;
+    #endregion
     
     #region Card Data Properties
-    // Each are defined as properties with public getters and private setters
     
+    /// <summary>
+    /// The card's data represented in packed binary
+    /// </summary>
     public int BinaryData { get; private set; }
-
+    
+    /// <summary>
     /// Unique ID consisting of the card's rank and month.
+    /// </summary>
     public int UniqueID { get; private set; }
     
+    /// <summary>
     /// The value that determines which card within a month this card is specifically.
-    /// (Mostly used for rendering)
+    /// </summary>
     public RankType Rank { get; private set; }
 
+    /// <summary>
     /// The month this card is a part of.
+    /// </summary>
     public MonthType Month { get; private set; }
 
+    /// <summary>
     /// The type of bright card this card is.
+    /// </summary>
     public BrightType Bright { get; private set; }
 
+    /// <summary>
     /// The type of animal card this card is.
+    /// </summary>
     public AnimalType Animal { get; private set; }
 
+    /// <summary>
     /// The type of ribbon card this card is.
+    /// </summary>
     public RibbonType Ribbon { get; private set; }
 
+    /// <summary>
     /// Returns true if the card is a brght card.
+    /// </summary>
     public bool IsBright => Bright != BrightType.None;
-
+    
+    /// <summary>
     /// Returns true if this card is an animal card.
+    /// </summary>
     public bool IsAnimal => Animal != AnimalType.None;
 
+    /// <summary>
     /// Returns true if this card is a ribbon card.
+    /// </summary>
     public bool IsRibbon => Ribbon != RibbonType.None;
 
+    /// <summary>
     /// Returns the name of the month of the card.
-    /// (Calls Month.ToString())
+    /// </summary>
+    /// <remarks>
+    /// Same as Card.Month.ToString();
+    /// </remarks>
     public string MonthName => Month.ToString();
 
+    /// <summary>
     /// Returns the name of the animal of the card if one exists, otherwise returns an empty string.
-    /// (Essentially just calls Animal.ToString())
+    /// </summary>
+    /// <remarks>
+    /// Same as Card.Animal.ToString();
+    /// </remarks>
     public string AnimalName => Animal == AnimalType.None ? "" : Animal.ToString();
 
+    /// <summary>
     /// Returns the name of the bright type of the card if one exists, otherwise returns an empty string.
-    /// (Essentially just calls Bright.ToString())
+    /// </summary>
+    /// <remarks>
+    /// Same as Card.Bright.ToString();
+    /// </remarks>
     public string BrightName => Bright == BrightType.None ? "" : Bright.ToString();
     
+    /// <summary>
     /// Returns the name of the ribbon type of the card if one exists, otherwise returns an empty string.
-    /// (Essentially just calls Ribbon.ToString())
+    /// </summary>
+    /// <remarks>
+    /// Same as Card.Ribbon.ToString();
+    /// </remarks>
     public string RibbonName => Ribbon == RibbonType.None ? "" : Ribbon.ToString();
-    
+
+    /// <summary>
+    /// The special data this card contains.
+    /// </summary>
+    public CardType CardTypeData {
+        get {
+            if (IsBright) return CardType.Bright;
+            else if (IsAnimal) return CardType.Animal;
+            else if (IsRibbon) return CardType.Ribbon;
+            else return CardType.Plain;
+        }
+    }
+
     #endregion
     
     #region Rendering Data
     private MaterialPropertyBlock material_properties;
     #endregion
 
+    /// <summary>
     /// Set the values of the card using its network-ready binary data.
+    /// </summary>
+    /// <remarks>
     /// Recommended to use <see cref="LoadCardData">loadCardData</see> instead as SetBinaryData may have unintended consequences if the data is invalid.
-    /// The card's binary data. Will be of the type ushort when networked,
-    /// but working with ints is generally easier in the backend.
+    /// </remarks>
+    /// <param name="data">The card's binary data. Will be of the type ushort when networked.</param>
+    /// <exception cref="ArgumentOutOfRangeException">A card value is corrupted and out of range.</exception>
     public void SetBinaryData(int data) {
         // Set the basic info of the card
         BinaryData = data;
@@ -130,7 +180,9 @@ public class Card : MonoBehaviour {
         OnValidate();
     }
 
+    /// <summary>
     /// Load the card data directly from a cardData scriptable object.
+    /// </summary>
     /// <param name="cardData">Scriptable object containing the card data.</param>
     public void LoadCardData(CardData cardData) {
         BinaryData = cardData.BinaryData;
@@ -148,7 +200,9 @@ public class Card : MonoBehaviour {
     }
 
 
+    /// <summary>
     /// Log the debug info of the card to the console.
+    /// </summary>
     public void printCardDebugInfo()
     {
         Debug.Log(
@@ -161,8 +215,8 @@ public class Card : MonoBehaviour {
             $"Ribbon: {Ribbon}, {Ribbon.ToString()}"
         );
     }
-    
-    #if UNITY_EDITOR
+
+#if UNITY_EDITOR
     [SerializeField, TextArea] private string debugInfo;
     #endif
 
@@ -187,42 +241,9 @@ public class Card : MonoBehaviour {
 
     public void OnMouseDown()
     {
-        // select player card
-        if (gameManager.playerTurn && gameManager.playerHandCards.Contains(this) && !gameManager.timeToDraw)
-        {
-            gameManager.SetCardSelectedBool(this);
-        }
-        // select opponent card
-        if (gameManager.opponentTurn && gameManager.opponentHandCards.Contains(this) && !gameManager.timeToDraw)
-        {
-            gameManager.SetCardSelectedBool(this);
-        }
-        // match card
-        if (gameManager.selectedCard != null && this.MonthName == gameManager.selectedCard.MonthName 
-            && this != gameManager.selectedCard && !gameManager.timeToDraw)
-        {
-            // prevent matching opponent's card during player's turn and vice versa
-            // also the deck?? Wow.
-            if (((gameManager.playerTurn && !gameManager.opponentHandCards.Contains(this)) ||
-                (gameManager.opponentTurn && !gameManager.playerHandCards.Contains(this))) &&
-                !gameManager.deckCards.Contains(this))
-            {
-                gameManager.Match(this);   
-            }
-            return;
-        }
-        // draw from deck
-        if (gameManager.timeToDraw && gameManager.deckCards.Contains(this) && gameManager.selectedCard == null)
-        {
-            gameManager.DrawFromDeck();
-            return;
-        }
-        // match from deck to center
-        if (gameManager.timeToDraw && this != gameManager.selectedCard && gameManager.centerCards.Contains(this) 
-        && this.MonthName == gameManager.selectedCard.MonthName)
-        {
-            gameManager.Match(this);
-            return;
-        }
+        OnCardSelect(this);
+        /*
+        
+        */
     }
 }

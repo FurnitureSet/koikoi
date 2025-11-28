@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
+using GameData;
 
 public class Hand : MonoBehaviour
 {
-    private Dictionary<Card.MonthType, List<Card>> cards;
+    private Dictionary<MonthType, List<Card>> cards;
 
     public void AddCard(Card card)
     {
