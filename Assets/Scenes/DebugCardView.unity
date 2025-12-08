@@ -1697,9 +1697,9 @@ RectTransform:
   - {fileID: 699586521}
   m_Father: {fileID: 723083251}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -379, y: -225}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 95, y: 41}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &484261053
@@ -10956,9 +10956,9 @@ RectTransform:
   - {fileID: 1870670689}
   m_Father: {fileID: 723083251}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 340, y: 225}
+  m_AnchorMin: {x: 1, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -134, y: -41}
   m_SizeDelta: {x: 233, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1045079876
@@ -11296,7 +11296,7 @@ Transform:
   m_GameObject: {fileID: 1162380288}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.175, y: 0.7055, z: 0}
+  m_LocalPosition: {x: 0.16, y: 0.7055, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -20696,7 +20696,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: efead414d6b6e46f9a158dfccbe9f963, type: 2}
-  - {fileID: -3846018093981099296, guid: 344cc1eedf4d74352b15d94f0fd82201, type: 3}
+  - {fileID: 2100000, guid: 59d04d58f65444a66965910a4fa5794c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
